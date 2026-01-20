@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Document {
+  id         String   @id
+  projectId  String
+  name       String
+  url        String
+  type       String
+  uploadedAt DateTime @default(now())
+  Project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model FacultyProfile {
+  id          String    @id
+  userId      String    @unique
+  department  String
+  designation String
+  expertise   String[]
+  User        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Project     Project[]
+}
+
+model Meeting {
+  id        String   @id
+  projectId String
+  title     String
+  date      DateTime
+  minutes   String?
+  attendees String[]
+  createdAt DateTime @default(now())
+  Project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Message {
+  id        String   @id
+  senderId  String
+  content   String
+  createdAt DateTime @default(now())
+  User      User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+}
+
+model Milestone {
+  id          String   @id
+  projectId   String
+  title       String
+  deadline    DateTime
+  isCompleted Boolean  @default(false)
+  Project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id
+  userId    String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Project {
+  id             String          @id
+  title          String
+  description    String
+  type           ProjectType
+  status         ProjectStatus   @default(PROPOSED)
+  groupId        String          @unique
+  guideId        String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime
+  Document       Document[]
+  Meeting        Meeting[]
+  Milestone      Milestone[]
+  ProjectGroup   ProjectGroup    @relation(fields: [groupId], references: [id])
+  FacultyProfile FacultyProfile? @relation(fields: [guideId], references: [id], onDelete: SetNull)
+}
+
+model ProjectGroup {
+  id             String           @id
+  name           String
+  createdAt      DateTime         @default(now())
+  Project        Project?
+  StudentProfile StudentProfile[]
+}
+
+model StudentProfile {
+  id           String        @id
+  userId       String        @unique
+  idNumber     String        @unique
+  department   String
+  batch        String
+  groupId      String?
+  ProjectGroup ProjectGroup? @relation(fields: [groupId], references: [id])
+  User         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id             String          @id
+  email          String          @unique
+  password       String
+  fullName       String
+  role           Role            @default(STUDENT)
+  avatarUrl      String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime
+  FacultyProfile FacultyProfile?
+  Message        Message[]
+  Notification   Notification[]
+  StudentProfile StudentProfile?
+}
+
+enum ProjectStatus {
+  PROPOSED
+  APPROVED
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+}
+
+enum ProjectType {
+  MAJOR
+  MINI
+  RESEARCH
+}
+
+enum Role {
+  ADMIN
+  FACULTY
+  STUDENT
+}
+
+model Department {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  code      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AcademicYear {
+  id        String   @id @default(cuid())
+  name      String   @unique // e.g., "2023-2024"
+  slug      String   @unique // e.g., "2023-24"
+  startDate DateTime
+  endDate   DateTime
+  isCurrent Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
