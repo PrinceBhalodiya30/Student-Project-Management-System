@@ -6,11 +6,16 @@ export async function GET() {
     try {
         const projects = await prisma.project.findMany({
             include: {
-                ProjectGroup: true,
+                ProjectGroup: {
+                    include: {
+                        StudentProfile: {
+                            include: { User: true }
+                        }
+                    }
+                },
                 FacultyProfile: {
                     include: { User: true } // Get guide's name
                 },
-                // We might want to include milestones or documents summary later
             },
             orderBy: {
                 createdAt: 'desc'
@@ -79,6 +84,14 @@ export async function POST(request: Request) {
                 updatedAt: new Date(),
             }
         });
+
+        // Assign members if provided
+        if (body.members && Array.isArray(body.members) && body.members.length > 0) {
+            await prisma.studentProfile.updateMany({
+                where: { id: { in: body.members } },
+                data: { groupId: groupId }
+            });
+        }
 
         return NextResponse.json(newProject, { status: 201 });
     } catch (error) {

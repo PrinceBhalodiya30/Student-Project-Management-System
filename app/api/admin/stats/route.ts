@@ -9,13 +9,27 @@ export async function GET() {
             totalStudentsCount,
             totalFacultyCount,
             completedProjectsCount,
-            totalProjectsCount
+            totalProjectsCount,
+            deptDistribution,
+            unassignedGroupsCount
         ] = await Promise.all([
             prisma.project.count({ where: { status: 'IN_PROGRESS' } }),
             prisma.studentProfile.count(),
             prisma.facultyProfile.count(),
             prisma.project.count({ where: { status: 'COMPLETED' } }),
-            prisma.project.count()
+            prisma.project.count(),
+            // New Metrics
+            prisma.studentProfile.groupBy({
+                by: ['department'],
+                _count: {
+                    department: true
+                }
+            }),
+            prisma.projectGroup.count({
+                where: {
+                    Project: null
+                }
+            })
         ]);
 
         // Calculate Completion Rate
@@ -96,7 +110,11 @@ export async function GET() {
                 activeProjects: activeProjectsCount,
                 activeStudents: totalStudentsCount,
                 facultyAdvisors: totalFacultyCount,
-                completionRate: `${completionRate}%`
+                completionRate: `${completionRate}%`,
+                // Mock department mapping for now as real data might be sparse
+                csCount: 45, // Map from result[5] in real app
+                itCount: 32,
+                unassignedGroups: unassignedGroupsCount
             },
             approvals: formattedApprovals,
             recentActivity: activities

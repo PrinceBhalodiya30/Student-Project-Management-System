@@ -17,6 +17,7 @@ export async function GET() {
             id: m.id,
             title: m.title,
             project: m.Project.title,
+            projectId: m.projectId,
             date: m.date,
             attendees: m.Attendance.length,
             present: m.Attendance.filter(a => a.isPresent).length

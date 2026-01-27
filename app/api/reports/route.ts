@@ -1,54 +1,64 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(req: Request) {
+export async function GET() {
     try {
-        const { searchParams } = new URL(req.url);
-        // Simple filters for now (future extension)
-        const academicYear = searchParams.get('year');
-        const department = searchParams.get('dept');
-
-        // 1. Key Metrics
-        const totalProjects = await prisma.project.count();
-        const activeStudents = await prisma.studentProfile.count();
-        // Mock avg completion time as we don't have 'completionTime' field
-        const completedProjects = await prisma.project.count({ where: { status: 'COMPLETED' } });
-        const successfulSubmissionsRate = totalProjects > 0 ? (completedProjects / totalProjects) * 100 : 0;
-
-        // 2. Projects by Department
-        // Grouping by existing departments in StudentProfile or FacultyProject... 
-        // Since Project doesn't directly store department, we might link via Student or Guide.
-        // For simplicity, let's assume we count via StudentProfile's department for Major projects.
-        // Aggregation in Prisma might need 'groupBy', but for relations it's tricky.
-        // Simplified approach: Fetch counts of StudentProfile grouped by Department (Approximation)
-        const studentsByDept = await prisma.studentProfile.groupBy({
-            by: ['department'],
-            _count: {
-                id: true
+        // 1. Fetch all projects first to calculate aggregates
+        const allProjects = await prisma.project.findMany({
+            include: {
+                ProjectGroup: {
+                    include: {
+                        StudentProfile: true
+                    }
+                }
             }
         });
 
-        const deptChartData = studentsByDept.map(d => ({
-            name: d.department || "Unknown",
-            // Normalize for chart (mock max height logic or raw count)
-            count: d._count.id,
-            height: '50%' // Dynamic calculation on frontend
-        }));
+        // 2. Fetch total active students (just count)
+        const activeStudents = await prisma.user.count({
+            where: { role: 'STUDENT' }
+        });
 
-        // 3. Status Distribution
-        const statusDistribution = await prisma.project.groupBy({
-            by: ['status'],
-            _count: {
-                id: true
+        // 3. Calculate Metrics
+        const totalProjects = allProjects.length;
+        const completedProjects = allProjects.filter(p => p.status === 'COMPLETED');
+
+        // Success Rate
+        const successRateVal = totalProjects > 0
+            ? Math.round((completedProjects.length / totalProjects) * 100)
+            : 0;
+
+        // Avg Completion Time (naive: createdAt to updatedAt for COMPLETED projects)
+        let totalDays = 0;
+        if (completedProjects.length > 0) {
+            completedProjects.forEach(p => {
+                const start = new Date(p.createdAt).getTime();
+                const end = new Date(p.updatedAt).getTime();
+                const diff = end - start;
+                totalDays += diff / (1000 * 3600 * 24);
+            });
+        }
+        const avgDays = completedProjects.length > 0 ? (totalDays / completedProjects.length) : 0;
+        const avgMonths = (avgDays / 30).toFixed(1);
+
+        // 4. Department Breakdown
+        const deptMap: Record<string, number> = {};
+        allProjects.forEach(p => {
+            // Department is derived from the student group's first student
+            const students = p.ProjectGroup?.StudentProfile || [];
+            if (students.length > 0) {
+                const dept = students[0].department || 'Unknown';
+                deptMap[dept] = (deptMap[dept] || 0) + 1;
+            } else {
+                deptMap['Unassigned'] = (deptMap['Unassigned'] || 0) + 1;
             }
         });
 
-        const statusChartData = statusDistribution.map(s => ({
-            status: s.status,
-            count: s._count.id
-        }));
+        const byDepartment = Object.entries(deptMap).map(([name, count]) => ({ name, count }));
 
-        // 4. Recent Activity (Mocking via recently updated projects)
+        // 5. Recent Activity (Last 5 updated)
+        // Re-fetch sorted or sort in memory. DB sort is better for "last 5" but we already have all.
+        // Let's just use the DB query for simplicity and correctness if list is large
         const recentProjects = await prisma.project.findMany({
             take: 5,
             orderBy: { updatedAt: 'desc' },
@@ -63,26 +73,26 @@ export async function GET(req: Request) {
         const recentActivity = recentProjects.map(p => ({
             id: p.id,
             project: p.title,
-            desc: `Status updated to ${p.status}`,
-            date: new Date(p.updatedAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
+            desc: `Project updated to ${p.status}`, // Simple description
+            date: new Date(p.updatedAt).toLocaleDateString()
         }));
 
         return NextResponse.json({
             metrics: {
                 totalProjects,
                 activeStudents,
-                avgCompletionTime: "4.2 mos", // Placeholder
-                successRate: successfulSubmissionsRate.toFixed(1) + "%"
+                avgCompletionTime: `${avgMonths} Months`,
+                successRate: `${successRateVal}%`
             },
             charts: {
-                byDepartment: deptChartData,
-                byStatus: statusChartData
+                byDepartment
             },
+
             recentActivity
         });
 
     } catch (error) {
-        console.error("Error fetching report data:", error);
-        return NextResponse.json({ error: "Failed to fetch report data" }, { status: 500 });
+        console.error("Reports API Error:", error);
+        return NextResponse.json({ error: "Failed to fetch reports" }, { status: 500 });
     }
 }

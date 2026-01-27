@@ -8,6 +8,8 @@ import { Edit2, Trash2 } from "lucide-react"
 export function ProjectTypeTab() {
     const [data, setData] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [showModal, setShowModal] = useState(false)
+    const [formData, setFormData] = useState<any>({})
 
     useEffect(() => {
         fetchTypes()
@@ -26,13 +28,18 @@ export function ProjectTypeTab() {
     }
 
     // Add/Edit logic
-    const [showModal, setShowModal] = useState(false)
-    const [formData, setFormData] = useState<any>({})
+    const handleEdit = (item: any) => {
+        setFormData(item)
+        setShowModal(true)
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        await fetch('/api/project-types', {
-            method: 'POST',
+        const url = formData.id ? '/api/project-types' : '/api/project-types'
+        const method = formData.id ? 'PUT' : 'POST'
+
+        await fetch(url, {
+            method: method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
         })
@@ -61,6 +68,9 @@ export function ProjectTypeTab() {
                                 <td className="px-4 py-3 text-white font-medium">{item.name}</td>
                                 <td className="px-4 py-3">{item.description || "-"}</td>
                                 <td className="px-4 py-3 text-right">
+                                    <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                                        <Edit2 className="h-4 w-4" />
+                                    </Button>
                                     <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-300" onClick={() => handleDelete(item.id)}>
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
@@ -76,7 +86,7 @@ export function ProjectTypeTab() {
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
                     <div className="bg-slate-900 border border-slate-700 rounded-lg w-full max-w-md p-6">
-                        <h3 className="text-lg font-bold text-white mb-4">Add Project Type</h3>
+                        <h3 className="text-lg font-bold text-white mb-4">{formData.id ? 'Edit' : 'Add'} Project Type</h3>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <Input
                                 placeholder="Type Name (e.g. Major Project)"
@@ -92,7 +102,7 @@ export function ProjectTypeTab() {
                             />
                             <div className="flex justify-end gap-2 mt-4">
                                 <Button type="button" variant="ghost" onClick={() => setShowModal(false)}>Cancel</Button>
-                                <Button type="submit" className="bg-blue-600">Save</Button>
+                                <Button type="submit" className="bg-blue-600">{formData.id ? 'Update' : 'Save'}</Button>
                             </div>
                         </form>
                     </div>

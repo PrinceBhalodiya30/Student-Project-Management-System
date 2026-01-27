@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Edit2, Trash2, UserPlus } from "lucide-react"
 import { Modal } from "@/components/ui/modal"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export function StudentTab() {
     const [data, setData] = useState<any[]>([])
@@ -14,9 +15,24 @@ export function StudentTab() {
     const [formData, setFormData] = useState<any>({})
     const [isEditing, setIsEditing] = useState(false)
 
+    const [departments, setDepartments] = useState<any[]>([])
+
     useEffect(() => {
         fetchStudents()
+        fetchDepartments()
     }, [])
+
+    const fetchDepartments = async () => {
+        try {
+            const res = await fetch('/api/departments')
+            if (res.ok) {
+                const json = await res.json()
+                setDepartments(json)
+            }
+        } catch (e) {
+            console.error(e)
+        }
+    }
 
     const fetchStudents = async () => {
         const res = await fetch('/api/students')
@@ -113,8 +129,20 @@ export function StudentTab() {
                             <Input placeholder="Batch (e.g. 2024)" className="bg-slate-800 border-slate-700"
                                 value={formData.batch || ''} onChange={e => setFormData({ ...formData, batch: e.target.value })} required />
                         </div>
-                        <Input placeholder="Department" className="bg-slate-800 border-slate-700"
-                            value={formData.department || ''} onChange={e => setFormData({ ...formData, department: e.target.value })} required />
+
+                        <Select
+                            value={formData.department}
+                            onValueChange={(val) => setFormData({ ...formData, department: val })}
+                        >
+                            <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-100">
+                                <SelectValue placeholder="Select Department" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-800 border-slate-700 text-slate-100">
+                                {departments.map((d) => (
+                                    <SelectItem key={d.id} value={d.code}>{d.name} ({d.code})</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
 
                         <div className="flex justify-end gap-2 mt-4">
                             <Button type="button" variant="ghost" onClick={() => setShowModal(false)}>Cancel</Button>

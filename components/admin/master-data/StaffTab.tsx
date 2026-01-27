@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Search, Plus, Edit2, Trash2 } from "lucide-react"
 import { Modal } from "@/components/ui/modal"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export function StaffTab() {
     const [data, setData] = useState<any[]>([])
@@ -14,9 +15,24 @@ export function StaffTab() {
     const [formData, setFormData] = useState<any>({})
     const [isEditing, setIsEditing] = useState(false)
 
+    const [departments, setDepartments] = useState<any[]>([])
+
     useEffect(() => {
         fetchStaff()
+        fetchDepartments()
     }, [])
+
+    const fetchDepartments = async () => {
+        try {
+            const res = await fetch('/api/departments')
+            if (res.ok) {
+                const json = await res.json()
+                setDepartments(json)
+            }
+        } catch (e) {
+            console.error(e)
+        }
+    }
 
     const fetchStaff = async () => {
         try {
@@ -32,8 +48,7 @@ export function StaffTab() {
     const handleEdit = (item: any) => {
         setFormData({
             ...item,
-            role: item.role === 'ADMIN' ? 'ADMIN' : 'FACULTY', // Normalize
-            // Ensure ID is passed for update (using userId from GET response)
+            role: item.role === 'ADMIN' ? 'ADMIN' : 'FACULTY',
             id: item.userId
         })
         setIsEditing(true)
@@ -130,23 +145,34 @@ export function StaffTab() {
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="text-sm font-medium text-slate-300">Department</label>
-                            <Input
-                                className="bg-slate-800 border-slate-700 mt-1"
-                                placeholder="e.g. CSE"
-                                value={formData.department || ''}
-                                onChange={e => setFormData({ ...formData, department: e.target.value })}
-                            />
+                            <Select
+                                value={formData.department}
+                                onValueChange={(val) => setFormData({ ...formData, department: val })}
+                            >
+                                <SelectTrigger className="bg-slate-800 border-slate-700 mt-1 text-slate-100">
+                                    <SelectValue placeholder="Select Dept" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-slate-800 border-slate-700 text-slate-100">
+                                    {departments.map((d) => (
+                                        <SelectItem key={d.id} value={d.code}>{d.name} ({d.code})</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div>
                             <label className="text-sm font-medium text-slate-300">Role</label>
-                            <select
-                                className="w-full bg-slate-800 border border-slate-700 rounded-md h-10 px-3 text-sm mt-1 text-white"
+                            <Select
                                 value={formData.role || 'FACULTY'}
-                                onChange={e => setFormData({ ...formData, role: e.target.value })}
+                                onValueChange={(val) => setFormData({ ...formData, role: val })}
                             >
-                                <option value="FACULTY">Faculty</option>
-                                <option value="ADMIN">Admin</option>
-                            </select>
+                                <SelectTrigger className="bg-slate-800 border-slate-700 mt-1 text-slate-100">
+                                    <SelectValue placeholder="Select Role" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-slate-800 border-slate-700 text-slate-100">
+                                    <SelectItem value="FACULTY">Faculty</SelectItem>
+                                    <SelectItem value="ADMIN">Admin</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
                     <div className="flex justify-end gap-3 mt-6">

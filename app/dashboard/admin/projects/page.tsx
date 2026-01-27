@@ -14,11 +14,15 @@ export default function ProjectsDirectoryPage() {
     const [projects, setProjects] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [stats, setStats] = useState({ total: 0, completed: 0, proposed: 0, activeStudents: 0 });
     // Hardcoded group ID from seed for testing
-    const [newProject, setNewProject] = useState({ title: "", description: "", type: "MAJOR", groupName: "", department: "CS" });
+    const [newProject, setNewProject] = useState({ title: "", description: "", type: "MAJOR", groupName: "", department: "CS", members: [] });
+
+    const [students, setStudents] = useState<any[]>([])
 
     useEffect(() => {
         fetchProjects();
+        fetch('/api/students').then(r => r.json()).then(setStudents);
     }, []);
 
     async function fetchProjects() {
@@ -28,6 +32,21 @@ export default function ProjectsDirectoryPage() {
             if (res.ok) {
                 const data = await res.json();
                 setProjects(data);
+
+                // Calculate Stats
+                let studentCount = 0;
+                data.forEach((p: any) => {
+                    if (p.ProjectGroup?.StudentProfile) {
+                        studentCount += p.ProjectGroup.StudentProfile.length;
+                    }
+                });
+
+                setStats({
+                    total: data.length,
+                    completed: data.filter((p: any) => p.status === 'COMPLETED').length,
+                    proposed: data.filter((p: any) => p.status === 'PROPOSED').length,
+                    activeStudents: studentCount
+                });
             }
         } catch (error) {
             console.error("Failed to fetch projects", error);
@@ -46,7 +65,7 @@ export default function ProjectsDirectoryPage() {
             });
             if (res.ok) {
                 setIsCreateOpen(false);
-                setNewProject({ title: "", description: "", type: "MAJOR", groupName: "", department: "CS" });
+                setNewProject({ title: "", description: "", type: "MAJOR", groupName: "", department: "CS", members: [] });
                 fetchProjects(); // Refresh list
             } else {
                 alert("Failed to create project. Ensure Group ID exists.");
@@ -70,8 +89,21 @@ export default function ProjectsDirectoryPage() {
         }
     }
 
+    // Helper for multi-select
+    const toggleMember = (id: string) => {
+        const current = (newProject as any).members || []
+        if (current.includes(id)) {
+            setNewProject({ ...newProject, members: current.filter((m: string) => m !== id) } as any)
+        } else {
+            setNewProject({ ...newProject, members: [...current, id] } as any)
+        }
+    }
+
+
+
     return (
         <div className="flex flex-col h-full bg-[#0f172a] text-slate-100 p-6 font-sans relative">
+            {/* ... header ... */}
             <div className="flex items-center justify-between mb-2">
                 <div>
                     <h1 className="text-3xl font-bold text-white">All Projects Directory</h1>
@@ -101,10 +133,10 @@ export default function ProjectsDirectoryPage() {
 
             {/* Stats Cards Row */}
             <div className="grid grid-cols-4 gap-4 mb-6">
-                <StatBox icon={<Folder className="text-blue-500" />} label="Total Projects" value={projects.length.toString()} />
-                <StatBox icon={<CheckCircle2 className="text-green-500" />} label="Completed" value={projects.filter(p => p.status === 'COMPLETED').length.toString()} />
-                <StatBox icon={<MoreHorizontal className="text-amber-500" />} label="In Approval" value={projects.filter(p => p.status === 'PROPOSED').length.toString()} />
-                <StatBox icon={<Users className="text-indigo-500" />} label="Active Students" value="--" />
+                <StatBox icon={<Folder className="text-blue-500" />} label="Total Projects" value={stats.total.toString()} />
+                <StatBox icon={<CheckCircle2 className="text-green-500" />} label="Completed" value={stats.completed.toString()} />
+                <StatBox icon={<MoreHorizontal className="text-amber-500" />} label="In Approval" value={stats.proposed.toString()} />
+                <StatBox icon={<Users className="text-indigo-500" />} label="Active Students" value={stats.activeStudents.toString()} />
             </div>
 
             {/* Table */}
@@ -131,7 +163,7 @@ export default function ProjectsDirectoryPage() {
                                 id={project.id}
                                 title={project.title}
                                 subtitle={`${project.type || "General"} • ${project.status}`}
-                                leader="--"
+                                leader={project.ProjectGroup?.StudentProfile?.[0]?.User?.fullName || "--"}
                                 guide={project.FacultyProfile?.User?.fullName || "Unassigned"}
                                 status={project.status}
                                 progress={project.progress || 0}
@@ -147,7 +179,7 @@ export default function ProjectsDirectoryPage() {
             {/* Custom Modal Overlay */}
             {isCreateOpen && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
-                    <div className="bg-[#1e293b] border border-slate-700 rounded-lg w-[500px] p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+                    <div className="bg-[#1e293b] border border-slate-700 rounded-lg w-[600px] p-6 shadow-2xl animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-xl font-bold text-white">Create New Project</h2>
                             <button onClick={() => setIsCreateOpen(false)} className="text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
@@ -191,6 +223,32 @@ export default function ProjectsDirectoryPage() {
                                     </select>
                                 </div>
                             </div>
+
+                            {/* Student Selection */}
+                            <div className="border border-slate-700 rounded-md p-3">
+                                <label className="text-sm text-slate-400 block mb-2">Select Team Members</label>
+                                <div className="max-h-40 overflow-y-auto space-y-1 pr-2">
+                                    {students.map(student => {
+                                        const assignedGroup = student.groupId
+                                            ? projects.find(p => p.ProjectGroup?.id === student.groupId)?.ProjectGroup
+                                            : null;
+
+                                        return (
+                                            <div key={student.id} className="flex items-center gap-2 p-1 hover:bg-slate-800 rounded">
+                                                <input
+                                                    type="checkbox"
+                                                    className="rounded border-slate-700 bg-slate-900"
+                                                    checked={((newProject as any).members || []).includes(student.id)}
+                                                    onChange={() => toggleMember(student.id)}
+                                                />
+                                                <span className="text-sm text-slate-300">{student.name} ({student.idNumber})</span>
+                                                {assignedGroup && <span className="text-xs text-amber-500 ml-auto italic">In: {assignedGroup.name}</span>}
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+
                             <div className="pt-4 flex justify-end gap-3">
                                 <Button type="button" variant="ghost" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
                                 <Button type="submit" className="bg-blue-600 hover:bg-blue-500">Create Project</Button>

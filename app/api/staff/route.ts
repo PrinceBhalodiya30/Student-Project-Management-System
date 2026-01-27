@@ -40,7 +40,7 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { name, email, department, role, password } = body; // Password should be hashed in real app, using plain for now if auth allows or simple hash
+        const { name, email, department, role = "FACULTY", password } = body; // Password should be hashed in real app, using plain for now if auth allows or simple hash
 
         // Check if user exists
         const existing = await prisma.user.findUnique({ where: { email } });

@@ -55,6 +55,31 @@ export async function PATCH(
         // Prevent updating ID
         delete body.id;
 
+        // If members are provided, update the group members
+        if (body.members && Array.isArray(body.members)) {
+            const project = await prisma.project.findUnique({
+                where: { id: projectId },
+                select: { groupId: true }
+            });
+
+            if (project?.groupId) {
+                // Transaction to clear old members and add new ones
+                await prisma.$transaction([
+                    // 1. Remove all members from this group
+                    prisma.studentProfile.updateMany({
+                        where: { groupId: project.groupId },
+                        data: { groupId: null }
+                    }),
+                    // 2. Add selected members to this group
+                    prisma.studentProfile.updateMany({
+                        where: { id: { in: body.members } },
+                        data: { groupId: project.groupId }
+                    })
+                ]);
+            }
+            delete body.members; // Remove from project update data
+        }
+
         const updatedProject = await prisma.project.update({
             where: { id: projectId },
             data: {

@@ -18,7 +18,8 @@ export async function GET() {
             email: s.email,
             idNumber: s.StudentProfile?.idNumber || "N/A",
             department: s.StudentProfile?.department || "N/A",
-            batch: s.StudentProfile?.batch || "N/A"
+            batch: s.StudentProfile?.batch || "N/A",
+            groupId: s.StudentProfile?.groupId || null
         }));
 
         return NextResponse.json(formatted);

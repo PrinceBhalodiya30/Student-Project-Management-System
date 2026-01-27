@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Separator } from "@/components/ui/separator"
 import { Modal } from "@/components/ui/modal"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Calendar, Users, User, FileText, CheckCircle2, XCircle, Clock, UserPlus } from "lucide-react"
+import { ArrowLeft, Calendar, Users, User, FileText, CheckCircle2, XCircle, Clock, UserPlus, Edit2, Search } from "lucide-react"
 
 export default function ProjectDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter()
@@ -109,6 +109,56 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
         }
     }
 
+    // Edit Team State
+    const [allStudents, setAllStudents] = useState<any[]>([])
+    const [isEditTeamOpen, setIsEditTeamOpen] = useState(false)
+    const [selectedMembers, setSelectedMembers] = useState<string[]>([])
+
+    async function fetchStudents() {
+        const res = await fetch('/api/students')
+        if (res.ok) {
+            const data = await res.json()
+            setAllStudents(data)
+        }
+    }
+
+    function openEditTeam() {
+        fetchStudents()
+        // Pre-select current members
+        const currentIds = project.ProjectGroup?.StudentProfile?.map((s: any) => s.id) || []
+        setSelectedMembers(currentIds)
+        setIsEditTeamOpen(true)
+    }
+
+    async function handleUpdateTeam() {
+        setActionLoading(true)
+        try {
+            const res = await fetch(`/api/projects/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ members: selectedMembers })
+            })
+            if (res.ok) {
+                fetchProjectDetails()
+                setIsEditTeamOpen(false)
+            } else {
+                alert("Failed to update team")
+            }
+        } catch (error) {
+            console.error(error)
+        } finally {
+            setActionLoading(false)
+        }
+    }
+
+    const toggleTeamMember = (studentId: string) => {
+        if (selectedMembers.includes(studentId)) {
+            setSelectedMembers(selectedMembers.filter(id => id !== studentId))
+        } else {
+            setSelectedMembers([...selectedMembers, studentId])
+        }
+    }
+
     if (loading) {
         return <div className="p-8 text-center text-slate-400">Loading project details...</div>
     }
@@ -164,6 +214,19 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                             </Button>
                         </div>
                     )}
+
+                    {/* Action Buttons for Active Projects */}
+                    {(status === 'IN_PROGRESS' || status === 'APPROVED') && (
+                        <div className="flex gap-3">
+                            <Button
+                                className="bg-emerald-600 hover:bg-emerald-500 text-white"
+                                onClick={() => updateStatus('COMPLETED')}
+                                disabled={actionLoading}
+                            >
+                                <CheckCircle2 className="mr-2 h-4 w-4" /> Mark as Completed
+                            </Button>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -211,8 +274,13 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                 <div className="space-y-6">
                     <Card className="bg-[#1e293b] border-slate-800">
                         <CardHeader>
-                            <CardTitle className="text-lg font-semibold text-white flex items-center gap-2">
-                                <Users className="h-5 w-5 text-indigo-500" /> Team Details
+                            <CardTitle className="text-lg font-semibold text-white flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                    <Users className="h-5 w-5 text-indigo-500" /> Team Details
+                                </div>
+                                <Button size="sm" variant="ghost" onClick={openEditTeam} className="h-8 w-8 p-0 text-slate-400 hover:text-white">
+                                    <Edit2 className="h-4 w-4" />
+                                </Button>
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -327,6 +395,60 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                     </div>
                 </div>
             </Modal>
+            {/* Edit Team Modal */}
+            <Modal
+                isOpen={isEditTeamOpen}
+                onClose={() => setIsEditTeamOpen(false)}
+                title="Edit Project Team"
+                className="max-w-xl"
+            >
+                <div className="space-y-4">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                        <input
+                            type="text"
+                            placeholder="Search students..."
+                            className="w-full bg-slate-900 border border-slate-700 text-slate-300 rounded-md pl-9 py-2 text-sm focus:outline-none focus:border-blue-500"
+                        />
+                    </div>
+
+                    <div className="max-h-60 overflow-y-auto space-y-1 pr-2 border border-slate-800 rounded-md p-2">
+                        {allStudents.map(student => {
+                            const isAssignedToOther = student.groupId && student.groupId !== project.groupId;
+                            const assignedGroup = isAssignedToOther
+                                ? allStudents.find(s => s.groupId === student.groupId)?.ProjectGroup // This logic is flawed, we need project info. 
+                                // Actually API /api/students should ideally return group info.
+                                // But for now, just filtering is confusing. 
+                                // Let's just show (Assigned) warning.
+                                : null;
+
+                            return (
+                                <div key={student.id} className={`flex items-center gap-3 p-2 rounded ${selectedMembers.includes(student.id) ? 'bg-blue-500/10 border border-blue-500/30' : 'hover:bg-slate-800 border border-transparent'}`}>
+                                    <input
+                                        type="checkbox"
+                                        className="rounded border-slate-600 bg-slate-800"
+                                        checked={selectedMembers.includes(student.id)}
+                                        onChange={() => toggleTeamMember(student.id)}
+                                    />
+                                    <div className="flex-1">
+                                        <div className="text-sm font-medium text-slate-200">{student.name}</div>
+                                        <div className="text-xs text-slate-500">{student.idNumber}</div>
+                                    </div>
+                                    {isAssignedToOther && <span className="text-xs text-amber-500 italic">Already in a group</span>}
+                                </div>
+                            )
+                        })}
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-2">
+                        <Button variant="ghost" onClick={() => setIsEditTeamOpen(false)}>Cancel</Button>
+                        <Button onClick={handleUpdateTeam} disabled={actionLoading} className="bg-blue-600 hover:bg-blue-500 text-white">
+                            {actionLoading ? "Saving..." : "Save Changes"}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
         </div>
     )
 }

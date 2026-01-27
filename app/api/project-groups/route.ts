@@ -34,21 +34,24 @@ export async function POST(req: Request) {
     try {
         const body = await req.json();
         // Create group
-        const group = await prisma.projectGroup.create({
-            data: {
-                id: randomUUID(),
-                name: body.name,
-                // Optionally connect initial members if provided
-            }
-        });
-
-        // If members provided (studentProfileIds), connect them
-        if (body.members && Array.isArray(body.members)) {
-            await prisma.studentProfile.updateMany({
-                where: { id: { in: body.members } },
-                data: { groupId: group.id }
+        // Transaction to create group and assign members
+        const group = await prisma.$transaction(async (tx) => {
+            const newGroup = await tx.projectGroup.create({
+                data: {
+                    id: randomUUID(),
+                    name: body.name,
+                }
             });
-        }
+
+            if (body.members && Array.isArray(body.members) && body.members.length > 0) {
+                await tx.studentProfile.updateMany({
+                    where: { id: { in: body.members } },
+                    data: { groupId: newGroup.id }
+                });
+            }
+
+            return newGroup;
+        });
 
         return NextResponse.json(group);
     } catch (error) {

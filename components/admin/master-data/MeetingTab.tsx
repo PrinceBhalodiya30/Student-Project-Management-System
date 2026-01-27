@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Calendar } from "lucide-react"
+import { Calendar, Edit2, Trash2 } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export function MeetingTab() {
     const [data, setData] = useState<any[]>([])
@@ -41,26 +42,87 @@ export function MeetingTab() {
         fetchData();
     }, [])
 
+    const handleEdit = (meeting: any) => {
+        setFormData({
+            ...meeting,
+            date: new Date(meeting.date).toISOString().split('T')[0],
+            projectId: meeting.project // Note: API returns project title string, not ID. This might be an issue if we need ID for select.
+            // Wait, existing GET returns: { id, title, project: titleString, date... }
+            // But select box needs projectId.
+            // I need to update GET to return projectId as well.
+        })
+        // NOTE: The GET logic in route.ts returns `project: m.Project.title`. It doesn't return projectId.
+        // I need to fix the GET route first to return projectId, otherwise edit will lose project association.
+        // Let's assume I'll fix GET route next.
+        setShowModal(true)
+    }
+
+    // Actually, I should fix the GET route logic inside this same step if possible or handle it. 
+    // Let's assume I will fix the GET route in a separate call or rely on finding project by name (unreliable).
+    // Better to fix GET route. But for now, let's implement the UI and I'll hotfix the GET route in next step.
+
+    // Improved handleEdit assuming data has projectId
+    const handleEditSafe = (meeting: any) => {
+        setFormData({
+            id: meeting.id,
+            title: meeting.title,
+            date: new Date(meeting.date).toISOString().split('T')[0],
+            projectId: meeting.projectId // This field needs to be added to GET
+        })
+        setShowModal(true)
+    }
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Delete this meeting?")) return;
+        await fetch(`/api/meetings/${id}`, { method: 'DELETE' });
+        fetchData();
+    }
+
+    const fetchData = async () => {
+        try {
+            const mRes = await fetch('/api/meetings');
+            const mData = await mRes.json();
+            if (Array.isArray(mData)) {
+                setData(mData);
+            } else {
+                setData([]);
+            }
+
+            const pRes = await fetch('/api/projects');
+            const pData = await pRes.json();
+            if (Array.isArray(pData)) {
+                setProjects(pData);
+            } else {
+                setProjects([]);
+            }
+        } catch (error) {
+            console.error("Fetch error:", error);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        await fetch('/api/meetings', {
-            method: 'POST',
+        const url = formData.id ? `/api/meetings/${formData.id}` : '/api/meetings'
+        const method = formData.id ? 'PUT' : 'POST'
+
+        await fetch(url, {
+            method: method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
         })
         setShowModal(false)
-        fetch('/api/meetings').then(r => r.json()).then(setData)
+        fetchData()
     }
 
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center">
                 <h3 className="text-white font-medium">Scheduled Meetings</h3>
-                <Button className="bg-blue-600" onClick={() => setShowModal(true)}>Schedule Meeting</Button>
+                <Button className="bg-blue-600" onClick={() => { setFormData({}); setShowModal(true); }}>Schedule Meeting</Button>
             </div>
             <div className="space-y-2">
                 {data.map(m => (
-                    <div key={m.id} className="flex items-center justify-between bg-slate-900 p-4 rounded border border-slate-800">
+                    <div key={m.id} className="flex items-center justify-between bg-slate-900 p-4 rounded border border-slate-800 group">
                         <div className="flex items-center gap-4">
                             <div className="h-10 w-10 bg-slate-800 rounded flex items-center justify-center text-slate-400">
                                 <Calendar className="h-5 w-5" />
@@ -70,9 +132,19 @@ export function MeetingTab() {
                                 <p className="text-xs text-slate-500">Project: {m.project} • {new Date(m.date).toLocaleDateString()}</p>
                             </div>
                         </div>
-                        <div className="text-right">
-                            <div className="text-sm text-slate-300 font-bold">{m.present} / {m.attendees}</div>
-                            <div className="text-[10px] text-slate-500 uppercase">Attendance</div>
+                        <div className="flex items-center gap-4">
+                            <div className="text-right">
+                                <div className="text-sm text-slate-300 font-bold">{m.present} / {m.attendees}</div>
+                                <div className="text-[10px] text-slate-500 uppercase">Attendance</div>
+                            </div>
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                <Button variant="ghost" size="icon" onClick={() => handleEditSafe(m)}>
+                                    <Edit2 className="h-4 w-4 text-slate-400 hover:text-white" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-300" onClick={() => handleDelete(m.id)}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 ))}
@@ -81,7 +153,7 @@ export function MeetingTab() {
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
                     <div className="bg-slate-900 border border-slate-700 rounded-lg w-full max-w-md p-6">
-                        <h3 className="text-lg font-bold text-white mb-4">Schedule Meeting</h3>
+                        <h3 className="text-lg font-bold text-white mb-4">{formData.id ? 'Edit' : 'Schedule'} Meeting</h3>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="space-y-1">
                                 <label className="text-xs text-slate-400">Meeting Title</label>
@@ -95,18 +167,24 @@ export function MeetingTab() {
                             </div>
                             <div className="space-y-1">
                                 <label className="text-xs text-slate-400">Project</label>
-                                <select className="w-full bg-slate-800 border-slate-700 rounded-md h-10 px-3 text-sm text-white"
-                                    value={formData.projectId || ''} onChange={e => setFormData({ ...formData, projectId: e.target.value })} required>
-                                    <option value="">Select Project</option>
-                                    {projects.map(p => (
-                                        <option key={p.id} value={p.id}>{p.title}</option>
-                                    ))}
-                                </select>
+                                <Select
+                                    value={formData.projectId}
+                                    onValueChange={(val) => setFormData({ ...formData, projectId: val })}
+                                >
+                                    <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-100">
+                                        <SelectValue placeholder="Select Project" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-slate-800 border-slate-700 text-slate-100">
+                                        {projects.map(p => (
+                                            <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
 
                             <div className="flex justify-end gap-2 mt-4">
                                 <Button type="button" variant="ghost" onClick={() => setShowModal(false)}>Cancel</Button>
-                                <Button type="submit" className="bg-blue-600">Schedule</Button>
+                                <Button type="submit" className="bg-blue-600">{formData.id ? 'Update' : 'Schedule'}</Button>
                             </div>
                         </form>
                     </div>
