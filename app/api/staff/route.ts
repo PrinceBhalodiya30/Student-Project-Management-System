@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { randomUUID } from "crypto";
 
 // GET: Fetch all staff (Faculty) for Master Data
 export async function GET() {
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
 
         const newUser = await prisma.user.create({
             data: {
-                id: crypto.randomUUID(),
+                id: randomUUID(),
                 fullName: name,
                 email,
                 password: password || "password123", // Default password
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
                 updatedAt: new Date(),
                 FacultyProfile: {
                     create: {
-                        id: crypto.randomUUID(),
+                        id: randomUUID(),
                         department: department,
                         designation: role, // Mapping role input to designation
                         expertise: []
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json(newUser);
     } catch (error) {
-        console.error("Error creating staff:", error);
+        console.error("Error creating staff:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
         return NextResponse.json({ error: "Failed to create staff member" }, { status: 500 });
     }
 }

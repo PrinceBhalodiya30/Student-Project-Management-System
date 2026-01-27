@@ -27,15 +27,26 @@ model FacultyProfile {
   Project     Project[]
 }
 
+
 model Meeting {
-  id        String   @id
+  id        String              @id @default(cuid())
   projectId String
   title     String
   date      DateTime
   minutes   String?
-  attendees String[]
-  createdAt DateTime @default(now())
-  Project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt DateTime            @default(now())
+  Project   Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  Attendance MeetingAttendance[]
+}
+
+model MeetingAttendance {
+  id        String   @id @default(cuid())
+  meetingId String
+  studentId String
+  isPresent Boolean  @default(false)
+  remarks   String?
+  Meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  Student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
 }
 
 model Message {
@@ -66,20 +77,28 @@ model Notification {
 }
 
 model Project {
-  id             String          @id
+  id             String          @id @default(cuid())
   title          String
   description    String
-  type           ProjectType
+  typeId         String
+  Type           ProjectType     @relation(fields: [typeId], references: [id])
   status         ProjectStatus   @default(PROPOSED)
   groupId        String          @unique
   guideId        String?
   createdAt      DateTime        @default(now())
-  updatedAt      DateTime
+  updatedAt      DateTime        @updatedAt
   Document       Document[]
   Meeting        Meeting[]
   Milestone      Milestone[]
   ProjectGroup   ProjectGroup    @relation(fields: [groupId], references: [id])
   FacultyProfile FacultyProfile? @relation(fields: [guideId], references: [id], onDelete: SetNull)
+}
+
+model ProjectType {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  Project     Project[]
 }
 
 model ProjectGroup {
@@ -99,6 +118,7 @@ model StudentProfile {
   groupId      String?
   ProjectGroup ProjectGroup? @relation(fields: [groupId], references: [id])
   User         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Attendance   MeetingAttendance[]
 }
 
 model User {
@@ -122,12 +142,6 @@ enum ProjectStatus {
   IN_PROGRESS
   COMPLETED
   REJECTED
-}
-
-enum ProjectType {
-  MAJOR
-  MINI
-  RESEARCH
 }
 
 enum Role {

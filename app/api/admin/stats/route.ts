@@ -29,6 +29,8 @@ export async function GET() {
             take: 5,
             orderBy: { createdAt: 'desc' },
             include: {
+                // Include Type relation
+                Type: true,
                 ProjectGroup: {
                     include: {
                         StudentProfile: {
@@ -47,7 +49,7 @@ export async function GET() {
             return {
                 id: project.id,
                 title: project.title,
-                type: project.type,
+                type: project.Type?.name || "Unknown", // Access Type.name
                 student: studentName,
                 date: project.createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
             };

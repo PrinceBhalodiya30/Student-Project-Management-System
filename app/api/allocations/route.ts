@@ -4,36 +4,50 @@ import { prisma } from "@/lib/prisma";
 // GET: Fetch data for allocations screen
 export async function GET() {
     try {
-        // 1. Fetch Unassigned Projects (Example: Logic for projects without guide)
-        const unassignedProjects = await prisma.project.findMany({
+        // 1. Fetch Unassigned Projects
+        const unassignedProjectsRaw = await prisma.project.findMany({
             where: {
-                guideId: null, // Depending on schema logic
+                guideId: null,
                 status: { not: 'REJECTED' }
             },
             include: {
-                ProjectGroup: true
+                ProjectGroup: {
+                    include: {
+                        StudentProfile: {
+                            include: {
+                                User: true
+                            }
+                        }
+                    }
+                }
             },
             take: 20
         });
 
+        const unassignedProjects = unassignedProjectsRaw.map(p => {
+            const leader = p.ProjectGroup?.StudentProfile?.[0]; // Assuming first student is leader or representative
+            return {
+                id: p.id,
+                title: p.title,
+                leader: leader?.User.fullName || "Unknown",
+                batch: leader?.batch || "N/A",
+                dept: leader?.department || "N/A"
+            };
+        });
+
         // 2. Fetch Faculty Availability
-        // Note: Workload calculation would ideally be a separate aggregate query
         const faculty = await prisma.facultyProfile.findMany({
             include: {
                 User: true,
-                Project: true // To calculate current load
+                Project: true
             }
         });
 
-        // Calculate load derived from active projects
         const facultyWithLoad = faculty.map(f => ({
             id: f.id,
             name: f.User.fullName,
-            email: f.User.email,
-            department: f.department,
-            expertise: f.expertise,
-            currentLoad: f.Project.filter(p => p.status === 'IN_PROGRESS').length, // Mock logic
-            maxLoad: 5 // Static for now, or could be in DB
+            load: f.Project.filter(p => p.status === 'IN_PROGRESS').length,
+            maxLoad: 5 // Static for now
         }));
 
         return NextResponse.json({
@@ -46,10 +60,34 @@ export async function GET() {
     }
 }
 
-// POST: Auto-Allocate (Mock Implementation)
-export async function POST() {
-    // 1. Fetch unassigned
-    // 2. Greedy algorithm to match expertise
-    // 3. Update DB
-    return NextResponse.json({ message: "Auto-allocation triggered" });
+// POST: Manual Allocate (Assign Guide to Project)
+export async function POST(req: Request) {
+    try {
+        const body = await req.json();
+        const { projectId, guideId } = body;
+
+        if (!projectId || !guideId) {
+            return NextResponse.json({ error: "Missing projectId or guideId" }, { status: 400 });
+        }
+
+        // Check if project exists and is unassigned (optional validation)
+        // Check if faculty has capacity (optional validation)
+
+        const updatedProject = await prisma.project.update({
+            where: { id: projectId },
+            data: {
+                guideId: guideId
+            }
+        });
+
+        return NextResponse.json({
+            success: true,
+            message: "Project allocated successfully",
+            project: updatedProject
+        });
+
+    } catch (error) {
+        console.error("Error allocating project:", error);
+        return NextResponse.json({ error: "Failed to allocate project" }, { status: 500 });
+    }
 }

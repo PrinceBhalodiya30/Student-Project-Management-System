@@ -7,9 +7,77 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
-import { Bell, Lock, User, Settings as SettingsIcon, Shield, Mail } from "lucide-react"
+import { Bell, Lock, User, Settings as SettingsIcon, Shield } from "lucide-react"
+import { useState, useEffect } from "react"
 
 export default function SettingsPage() {
+    const [profile, setProfile] = useState<any>({ fullName: '', email: '', bio: 'System Administrator' });
+    const [loading, setLoading] = useState(true);
+
+    // Password Form State
+    const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+
+    useEffect(() => {
+        fetchProfile();
+    }, []);
+
+    const fetchProfile = async () => {
+        // Mocking session email for now
+        const res = await fetch('/api/settings/profile?email=admin@spms.edu');
+        if (res.ok) {
+            const data = await res.json();
+            setProfile({ ...data, bio: 'System Administrator' }); // Bio is static for now
+        }
+        setLoading(false);
+    }
+
+    const handleProfileUpdate = async () => {
+        try {
+            const res = await fetch('/api/settings/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    currentEmail: 'admin@spms.edu', // Should come from session
+                    name: profile.fullName,
+                    email: profile.email
+                })
+            });
+            if (res.ok) alert("Profile updated!");
+            else alert("Failed to update profile");
+        } catch (e) {
+            alert("Error updating profile");
+        }
+    }
+
+    const handlePasswordUpdate = async () => {
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+            alert("New passwords do not match");
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/settings/password', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: profile.email,
+                    currentPassword: passwordData.currentPassword,
+                    newPassword: passwordData.newPassword
+                })
+            });
+
+            const json = await res.json();
+            if (res.ok) {
+                alert("Password updated successfully");
+                setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+            } else {
+                alert(json.error || "Failed to update password");
+            }
+        } catch (e) {
+            alert("Error updating password");
+        }
+    }
+
     return (
         <div className="flex flex-col gap-6 p-6 h-full bg-slate-950 text-slate-100 overflow-y-auto">
             <div>
@@ -36,24 +104,24 @@ export default function SettingsPage() {
                             <CardContent className="space-y-4">
                                 <div className="grid gap-2">
                                     <Label htmlFor="name" className="text-slate-200">Name</Label>
-                                    <Input id="name" defaultValue="Dr. Aris Thorne" className="bg-slate-950 border-slate-800 text-slate-100" />
+                                    <Input id="name" value={profile.fullName} onChange={e => setProfile({ ...profile, fullName: e.target.value })} className="bg-slate-950 border-slate-800 text-slate-100" />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="email" className="text-slate-200">Email</Label>
-                                    <Input id="email" defaultValue="admin@spms.edu" className="bg-slate-950 border-slate-800 text-slate-100" />
+                                    <Input id="email" value={profile.email} onChange={e => setProfile({ ...profile, email: e.target.value })} className="bg-slate-950 border-slate-800 text-slate-100" />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="bio" className="text-slate-200">Bio</Label>
-                                    <Input id="bio" defaultValue="System Administrator" className="bg-slate-950 border-slate-800 text-slate-100" />
+                                    <Input id="bio" value={profile.bio} disabled className="bg-slate-950 border-slate-800 text-slate-100 opacity-50" />
                                 </div>
                             </CardContent>
                             <CardFooter className="border-t border-slate-800 pt-4">
-                                <Button className="bg-blue-600 hover:bg-blue-500">Save Changes</Button>
+                                <Button className="bg-blue-600 hover:bg-blue-500" onClick={handleProfileUpdate}>Save Changes</Button>
                             </CardFooter>
                         </Card>
                     </TabsContent>
 
-                    {/* Notifications Settings */}
+                    {/* Notifications Settings (Visual Only) */}
                     <TabsContent value="notifications" className="space-y-4">
                         <Card className="bg-slate-900 border-slate-800">
                             <CardHeader>
@@ -76,14 +144,6 @@ export default function SettingsPage() {
                                     </Label>
                                     <Switch id="allocations" defaultChecked />
                                 </div>
-                                <Separator className="bg-slate-800" />
-                                <div className="flex items-center justify-between space-x-2">
-                                    <Label htmlFor="reports" className="flex flex-col space-y-1">
-                                        <span className="text-white">Weekly Reports</span>
-                                        <span className="font-normal text-xs text-slate-400">Receive weekly analytical reports via email.</span>
-                                    </Label>
-                                    <Switch id="reports" />
-                                </div>
                             </CardContent>
                         </Card>
                     </TabsContent>
@@ -98,37 +158,30 @@ export default function SettingsPage() {
                             <CardContent className="space-y-4">
                                 <div className="grid gap-2">
                                     <Label htmlFor="current-password" className="text-slate-200">Current Password</Label>
-                                    <Input id="current-password" type="password" className="bg-slate-950 border-slate-800 text-slate-100" />
+                                    <Input id="current-password" type="password"
+                                        value={passwordData.currentPassword} onChange={e => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                                        className="bg-slate-950 border-slate-800 text-slate-100" />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="new-password" className="text-slate-200">New Password</Label>
-                                    <Input id="new-password" type="password" className="bg-slate-950 border-slate-800 text-slate-100" />
+                                    <Input id="new-password" type="password"
+                                        value={passwordData.newPassword} onChange={e => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                                        className="bg-slate-950 border-slate-800 text-slate-100" />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="confirm-password" className="text-slate-200">Confirm New Password</Label>
-                                    <Input id="confirm-password" type="password" className="bg-slate-950 border-slate-800 text-slate-100" />
+                                    <Input id="confirm-password" type="password"
+                                        value={passwordData.confirmPassword} onChange={e => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                                        className="bg-slate-950 border-slate-800 text-slate-100" />
                                 </div>
                             </CardContent>
                             <CardFooter className="border-t border-slate-800 pt-4">
-                                <Button className="bg-blue-600 hover:bg-blue-500">Update Password</Button>
+                                <Button className="bg-blue-600 hover:bg-blue-500" onClick={handlePasswordUpdate}>Update Password</Button>
                             </CardFooter>
-                        </Card>
-                        <Card className="bg-slate-900 border-slate-800">
-                            <CardHeader>
-                                <CardTitle className="text-white flex items-center gap-2"><Shield className="h-5 w-5" /> Two-Factor Authentication</CardTitle>
-                                <CardDescription className="text-slate-400">Add an extra layer of security to your account.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="flex justify-between items-center">
-                                <div className="space-y-1">
-                                    <p className="text-sm font-medium text-white">Two-factor authentication is currently disabled.</p>
-                                    <p className="text-xs text-slate-400">We recommend enabling it for better security.</p>
-                                </div>
-                                <Button variant="outline" className="border-slate-700 text-slate-300">Enable 2FA</Button>
-                            </CardContent>
                         </Card>
                     </TabsContent>
 
-                    {/* System Settings */}
+                    {/* System Settings (Visual Only) */}
                     <TabsContent value="system" className="space-y-4">
                         <Card className="bg-slate-900 border-slate-800">
                             <CardHeader>
@@ -148,9 +201,6 @@ export default function SettingsPage() {
                                     <Switch id="maintenance" />
                                 </div>
                             </CardContent>
-                            <CardFooter className="border-t border-slate-800 pt-4">
-                                <Button className="bg-red-600 hover:bg-red-500">Save System Settings</Button>
-                            </CardFooter>
                         </Card>
                     </TabsContent>
                 </div>

@@ -7,12 +7,15 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Search, Plus, Filter, SlidersHorizontal, Eye, Folder, CheckCircle2, Users, MoreHorizontal, ChevronDown, Trash2, X } from "lucide-react"
 
+import { useRouter } from "next/navigation"
+
 export default function ProjectsDirectoryPage() {
+    const router = useRouter()
     const [projects, setProjects] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     // Hardcoded group ID from seed for testing
-    const [newProject, setNewProject] = useState({ title: "", description: "", type: "MAJOR", groupId: "cmkdwyc9e001lxuliaf8hh7y7" });
+    const [newProject, setNewProject] = useState({ title: "", description: "", type: "MAJOR", groupName: "", department: "CS" });
 
     useEffect(() => {
         fetchProjects();
@@ -43,7 +46,7 @@ export default function ProjectsDirectoryPage() {
             });
             if (res.ok) {
                 setIsCreateOpen(false);
-                setNewProject({ title: "", description: "", type: "MAJOR", groupId: "cmkdwyc9e001lxuliaf8hh7y7" });
+                setNewProject({ title: "", description: "", type: "MAJOR", groupName: "", department: "CS" });
                 fetchProjects(); // Refresh list
             } else {
                 alert("Failed to create project. Ensure Group ID exists.");
@@ -134,6 +137,7 @@ export default function ProjectsDirectoryPage() {
                                 progress={project.progress || 0}
                                 progressColor={project.status === 'COMPLETED' ? "bg-green-500" : "bg-blue-500"}
                                 onDelete={() => handleDelete(project.id)}
+                                onView={() => router.push(`/dashboard/admin/projects/${project.id}`)}
                             />
                         ))
                     )}
@@ -158,16 +162,34 @@ export default function ProjectsDirectoryPage() {
                                 <Input required value={newProject.description} onChange={e => setNewProject({ ...newProject, description: e.target.value })} className="bg-[#0f172a] border-slate-700 text-white" />
                             </div>
                             <div>
-                                <label className="text-sm text-slate-400 block mb-1">Type</label>
-                                <select
-                                    className="w-full bg-[#0f172a] border border-slate-700 text-slate-300 rounded-md h-10 px-3 text-sm"
-                                    value={newProject.type}
-                                    onChange={e => setNewProject({ ...newProject, type: e.target.value })}
-                                >
-                                    <option value="MAJOR">Major Project</option>
-                                    <option value="MINI">Mini Project</option>
-                                    <option value="RESEARCH">Research</option>
-                                </select>
+                                <label className="text-sm text-slate-400 block mb-1">Group Name (Team Name)</label>
+                                <Input placeholder="e.g. Team Alpha" value={newProject.groupName} onChange={e => setNewProject({ ...newProject, groupName: e.target.value })} className="bg-[#0f172a] border-slate-700 text-white" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-sm text-slate-400 block mb-1">Type</label>
+                                    <select
+                                        className="w-full bg-[#0f172a] border border-slate-700 text-slate-300 rounded-md h-10 px-3 text-sm"
+                                        value={newProject.type}
+                                        onChange={e => setNewProject({ ...newProject, type: e.target.value })}
+                                    >
+                                        <option value="MAJOR">Major Project</option>
+                                        <option value="MINI">Mini Project</option>
+                                        <option value="RESEARCH">Research</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-sm text-slate-400 block mb-1">Department</label>
+                                    <select
+                                        className="w-full bg-[#0f172a] border border-slate-700 text-slate-300 rounded-md h-10 px-3 text-sm"
+                                        value={newProject.department}
+                                        onChange={e => setNewProject({ ...newProject, department: e.target.value })}
+                                    >
+                                        <option value="CS">Computer Science</option>
+                                        <option value="SE">Software Engineering</option>
+                                        <option value="IT">Info Tech</option>
+                                    </select>
+                                </div>
                             </div>
                             <div className="pt-4 flex justify-end gap-3">
                                 <Button type="button" variant="ghost" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
@@ -204,7 +226,7 @@ function StatBox({ icon, label, value }: any) {
     )
 }
 
-function ProjectRow({ id, title, subtitle, leader, guide, status, progress, progressColor, onDelete }: any) {
+function ProjectRow({ id, title, subtitle, leader, guide, status, progress, progressColor, onDelete, onView }: any) {
     let badgeClass = "bg-blue-500/10 text-blue-500"
     if (status === 'COMPLETED') badgeClass = "bg-green-500/10 text-green-500"
     if (status === 'PROPOSED') badgeClass = "bg-amber-500/10 text-amber-500"
@@ -229,7 +251,7 @@ function ProjectRow({ id, title, subtitle, leader, guide, status, progress, prog
                 <span className="text-[10px] text-slate-400">{progress}%</span>
             </div>
             <div className="col-span-1 text-center flex justify-center gap-2">
-                <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-white">
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-white" onClick={onView}>
                     <Eye className="h-4 w-4" />
                 </Button>
                 <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-red-400" onClick={onDelete}>

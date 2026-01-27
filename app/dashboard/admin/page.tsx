@@ -61,12 +61,13 @@ export default function AdminDashboard() {
                 {/* Search */}
                 <div className="w-96">
                     <input
+                        suppressHydrationWarning
                         className="w-full bg-[#1e293b] border-none rounded-lg py-2 px-4 text-sm text-slate-300 placeholder:text-slate-500 focus:ring-1 focus:ring-blue-500"
                         placeholder="Search projects, students, or faculty..."
                     />
                 </div>
                 <div className="flex items-center gap-4">
-                    <Button size="icon" variant="ghost" className="text-slate-400 hover:text-white hover:bg-slate-800">
+                    <Button size="icon" variant="ghost" className="text-slate-400 hover:text-white hover:bg-slate-800" suppressHydrationWarning>
                         <Bell className="h-5 w-5" />
                         <span className="absolute top-3 right-3 h-2 w-2 bg-red-500 rounded-full"></span>
                     </Button>
@@ -84,11 +85,11 @@ export default function AdminDashboard() {
                         <p className="text-slate-400">Project management performance metrics.</p>
                     </div>
                     <div className="flex gap-3">
-                        <Button variant="outline" className="bg-[#1e293b] border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white gap-2">
+                        <Button variant="outline" className="bg-[#1e293b] border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white gap-2" suppressHydrationWarning>
                             <Calendar className="h-4 w-4" />
                             Last 30 Days
                         </Button>
-                        <Button className="bg-blue-600 hover:bg-blue-500 text-white gap-2">
+                        <Button className="bg-blue-600 hover:bg-blue-500 text-white gap-2" suppressHydrationWarning>
                             <Download className="h-4 w-4" />
                             Export Report
                         </Button>
@@ -192,7 +193,7 @@ export default function AdminDashboard() {
                                     ))
                                 )}
                             </div>
-                            <Button variant="ghost" className="w-full mt-6 text-slate-400 hover:text-white text-xs">
+                            <Button variant="ghost" className="w-full mt-6 text-slate-400 hover:text-white text-xs" suppressHydrationWarning>
                                 View All Activity
                             </Button>
                         </div>

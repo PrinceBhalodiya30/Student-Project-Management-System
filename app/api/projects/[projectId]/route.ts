@@ -13,8 +13,20 @@ export async function GET(
         const project = await prisma.project.findUnique({
             where: { id: projectId },
             include: {
-                ProjectGroup: true,
-                FacultyProfile: true,
+                ProjectGroup: {
+                    include: {
+                        StudentProfile: {
+                            include: {
+                                User: true
+                            }
+                        }
+                    }
+                },
+                FacultyProfile: {
+                    include: {
+                        User: true
+                    }
+                },
                 Milestone: true,
                 Document: true
             }

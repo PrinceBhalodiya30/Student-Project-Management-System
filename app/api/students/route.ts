@@ -1,0 +1,57 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { randomUUID } from "crypto";
+
+export async function GET() {
+    try {
+        // Fetch users with role STUDENT and their profile
+        const students = await prisma.user.findMany({
+            where: { role: 'STUDENT' },
+            include: { StudentProfile: true },
+            orderBy: { fullName: 'asc' }
+        });
+
+        const formatted = students.map(s => ({
+            id: s.StudentProfile?.id,
+            userId: s.id,
+            name: s.fullName,
+            email: s.email,
+            idNumber: s.StudentProfile?.idNumber || "N/A",
+            department: s.StudentProfile?.department || "N/A",
+            batch: s.StudentProfile?.batch || "N/A"
+        }));
+
+        return NextResponse.json(formatted);
+    } catch (error) {
+        return NextResponse.json({ error: "Failed to fetch students" }, { status: 500 });
+    }
+}
+
+export async function POST(req: Request) {
+    try {
+        const body = await req.json();
+        // Create User AND StudentProfile
+        const newUser = await prisma.user.create({
+            data: {
+                id: randomUUID(),
+                fullName: body.name,
+                email: body.email,
+                password: "password123", // Default
+                role: "STUDENT",
+                updatedAt: new Date(),
+                StudentProfile: {
+                    create: {
+                        id: randomUUID(),
+                        idNumber: body.idNumber,
+                        department: body.department,
+                        batch: body.batch
+                    }
+                }
+            }
+        });
+        return NextResponse.json(newUser);
+    } catch (error) {
+        console.error("Create student error", error);
+        return NextResponse.json({ error: "Failed to create student" }, { status: 500 });
+    }
+}

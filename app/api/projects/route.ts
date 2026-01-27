@@ -28,19 +28,54 @@ export async function POST(request: Request) {
     try {
         const body = await request.json();
 
-        // Basic validation (In real app, use Zod)
-        if (!body.title || !body.description || !body.groupId) {
-            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+        // Validations
+        if (!body.title || !body.description) {
+            return NextResponse.json({ error: "Missing title or description" }, { status: 400 });
+        }
+
+        const typeName = body.type || "MAJOR";
+        let projectType = await prisma.projectType.findUnique({ where: { name: typeName } });
+        if (!projectType) {
+            projectType = await prisma.projectType.create({ data: { name: typeName } });
+        }
+
+        // Handle Group: Check if groupId provided, else create new group based on Title/Input
+        let groupId = body.groupId;
+        const groupName = body.groupName || `${body.title} Group`;
+
+        // If no valid groupId (or hardcoded dummy), create a new group
+        // In this admin flow, we assume we are creating a project + group shell
+        if (!groupId || groupId.length < 10) { // Simple check for dummy/empty
+            const newGroup = await prisma.projectGroup.create({
+                data: {
+                    id: `GRP-${Date.now()}`,
+                    name: groupName
+                }
+            });
+            groupId = newGroup.id;
+        } else {
+            // Verify group exists
+            const exists = await prisma.projectGroup.findUnique({ where: { id: groupId } });
+            if (!exists) {
+                // Fallback create
+                const newGroup = await prisma.projectGroup.create({
+                    data: {
+                        id: `GRP-${Date.now()}`,
+                        name: groupName
+                    }
+                });
+                groupId = newGroup.id;
+            }
         }
 
         const newProject = await prisma.project.create({
             data: {
-                id: `PRJ-${Date.now()}`, // Simple ID generation
+                id: `PRJ-${Date.now()}`,
                 title: body.title,
                 description: body.description,
-                type: body.type || "MAJOR",
+                typeId: projectType.id,
                 status: "PROPOSED",
-                groupId: body.groupId,
+                groupId: groupId,
                 updatedAt: new Date(),
             }
         });
