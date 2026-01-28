@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { AdminTopBar } from "@/components/admin/admin-topbar"
-import { PendingApprovals } from "@/components/admin/pending-approvals"
+import { FacultyLoad } from "@/components/admin/faculty-load"
 import { RecentActivity } from "@/components/admin/recent-activity"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -24,7 +24,7 @@ import {
 
 export default function AdminDashboard() {
     const [stats, setStats] = useState<any>(null);
-    const [approvals, setApprovals] = useState<any[]>([]);
+    const [facultyLoad, setFacultyLoad] = useState<any[]>([]);
     const [recentActivity, setRecentActivity] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -36,7 +36,7 @@ export default function AdminDashboard() {
                 if (res.ok) {
                     const data = await res.json();
                     setStats(data.stats);
-                    setApprovals(data.approvals);
+                    setFacultyLoad(data.facultyLoad || []);
                     setRecentActivity(data.recentActivity);
                 }
             } catch (error) {
@@ -132,7 +132,7 @@ export default function AdminDashboard() {
                             <AlertCircle className="h-4 w-4 text-amber-500" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{loading ? "..." : (approvals.length + (parseInt(stats?.unassignedGroups || "0")))}</div>
+                            <div className="text-2xl font-bold">{loading ? "..." : (parseInt(stats?.unassignedProjects || "0"))}</div>
                             <p className="text-xs text-muted-foreground mt-1">
                                 Requires attention
                             </p>
@@ -147,64 +147,38 @@ export default function AdminDashboard() {
                     <div className="lg:col-span-2 space-y-6">
 
                         {/* Project Status Overview */}
+                        {/* Simplified Project Status Overview */}
                         <Card className="shadow-sm">
                             <CardHeader>
-                                <CardTitle>Project Status Overview</CardTitle>
-                                <CardDescription>Current academic year progress tracking</CardDescription>
+                                <CardTitle>Overview</CardTitle>
+                                <CardDescription>Quick access to pending items</CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-6">
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="font-medium">System Capacity</span>
-                                        <span className="text-muted-foreground">{activeProjectCount} / {totalCapacity} projects</span>
+                            <CardContent className="grid grid-cols-1 gap-4">
+                                <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-900/20 flex flex-col justify-between h-32 hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors cursor-pointer" onClick={() => window.location.href = '/dashboard/admin/allocations'}>
+                                    <div className="flex items-start justify-between">
+                                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                                            <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                        </div>
+                                        <ArrowRight className="h-4 w-4 text-blue-400" />
                                     </div>
-                                    <Progress value={capacityPercentage} className="h-2" />
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-                                    <div className="p-4 bg-muted/30 rounded-lg border border-border">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-                                                <LayoutDashboard className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                                            </div>
-                                            <span className="text-sm font-medium">Unassigned Groups</span>
-                                        </div>
-                                        <div className="flex items-end justify-between">
-                                            <span className="text-2xl font-bold">{stats?.unassignedGroups || 0}</span>
-                                            <Button variant="link" size="sm" className="h-auto p-0 text-blue-600" onClick={() => window.location.href = '/dashboard/admin/allocations'}>
-                                                Manage <ArrowRight className="ml-1 h-3 w-3" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                    <div className="p-4 bg-muted/30 rounded-lg border border-border">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <div className="h-8 w-8 rounded-full bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center">
-                                                <FileText className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                                            </div>
-                                            <span className="text-sm font-medium">Reports Submitted</span>
-                                        </div>
-                                        <div className="flex items-end justify-between">
-                                            {/* Dummy data or 0 if not available */}
-                                            <span className="text-2xl font-bold">0</span>
-                                            <Button variant="link" size="sm" className="h-auto p-0 text-emerald-600" onClick={() => window.location.href = '/dashboard/admin/reports'}>
-                                                View <ArrowRight className="ml-1 h-3 w-3" />
-                                            </Button>
-                                        </div>
+                                    <div>
+                                        <div className="text-3xl font-bold text-blue-950 dark:text-blue-100">{stats?.unassignedProjects || 0}</div>
+                                        <div className="text-sm font-medium text-blue-600 dark:text-blue-300">Unassigned Projects</div>
                                     </div>
                                 </div>
                             </CardContent>
                         </Card>
 
-                        {/* Pending Approvals (Table View) */}
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between px-1">
-                                <h3 className="text-lg font-semibold flex items-center gap-2">
-                                    Pending Approvals
-                                    {approvals.length > 0 && <Badge variant="secondary" className="ml-2 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-0">{approvals.length}</Badge>}
-                                </h3>
-                                <Button variant="ghost" size="sm" className="text-muted-foreground">View All</Button>
-                            </div>
-                            <PendingApprovals approvals={approvals} loading={loading} />
-                        </div>
+                        {/* Faculty/Guide Load */}
+                        <Card className="shadow-sm">
+                            <CardHeader>
+                                <CardTitle>Faculty Workload</CardTitle>
+                                <CardDescription>Active project distribution among top guides</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <FacultyLoad faculty={facultyLoad} loading={loading} />
+                            </CardContent>
+                        </Card>
 
                     </div>
 

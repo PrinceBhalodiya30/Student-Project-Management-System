@@ -17,10 +17,37 @@ export function StudentTab() {
 
     const [departments, setDepartments] = useState<any[]>([])
 
+    // Search & Filter State
+    const [searchTerm, setSearchTerm] = useState("");
+    const [filterDept, setFilterDept] = useState("ALL");
+    const [filterBatch, setFilterBatch] = useState("ALL");
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 8;
+
     useEffect(() => {
         fetchStudents()
         fetchDepartments()
     }, [])
+
+    // Derived Logic
+    const filteredData = data.filter(item => {
+        const matchesSearch =
+            item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.idNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.email.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesDept = filterDept === "ALL" || item.department === filterDept;
+        const matchesBatch = filterBatch === "ALL" || item.batch === filterBatch;
+        return matchesSearch && matchesDept && matchesBatch;
+    });
+
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+    // Reset pagination
+    useEffect(() => setCurrentPage(1), [searchTerm, filterDept, filterBatch]);
+
+    // Extract unique batches for filter
+    const uniqueBatches = Array.from(new Set(data.map(i => i.batch))).sort();
 
     const fetchDepartments = async () => {
         try {
@@ -43,7 +70,9 @@ export function StudentTab() {
     const handleEdit = (item: any) => {
         setFormData({
             ...item,
-            id: item.userId // Important: Use User ID for updates
+            id: item.userId, // Important: Use User ID for updates
+            isActive: item.isActive,
+            isLeader: item.isLeader
         })
         setIsEditing(true)
         setShowModal(true)
@@ -81,40 +110,103 @@ export function StudentTab() {
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-between">
-                <Input placeholder="Search students..." className="max-w-xs bg-slate-900 border-slate-700" />
+            <div className="flex flex-col md:flex-row justify-between gap-4">
+                <div className="flex gap-2 flex-wrap">
+                    <Input
+                        placeholder="Search students..."
+                        className="w-full md:w-64 bg-slate-900 border-slate-700"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    <Select value={filterDept} onValueChange={setFilterDept}>
+                        <SelectTrigger className="w-[150px] bg-slate-900 border-slate-700 h-10">
+                            <SelectValue placeholder="Department" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800 border-slate-700 text-slate-100">
+                            <SelectItem value="ALL">All Depts</SelectItem>
+                            {departments.map(d => <SelectItem key={d.id} value={d.code}>{d.code}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    <Select value={filterBatch} onValueChange={setFilterBatch}>
+                        <SelectTrigger className="w-[120px] bg-slate-900 border-slate-700 h-10">
+                            <SelectValue placeholder="Batch" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800 border-slate-700 text-slate-100">
+                            <SelectItem value="ALL">All Batches</SelectItem>
+                            {uniqueBatches.map((b: any) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
                 <Button className="bg-blue-600" onClick={() => { setFormData({}); setIsEditing(false); setShowModal(true); }}><UserPlus className="mr-2 h-4 w-4" /> Add Student</Button>
             </div>
-            <div className="bg-slate-900 rounded border border-slate-800 overflow-hidden">
-                <table className="w-full text-left text-sm text-slate-400">
-                    <thead className="bg-slate-800/50 text-xs uppercase font-semibold text-slate-500">
-                        <tr>
-                            <th className="px-4 py-3">Name</th>
-                            <th className="px-4 py-3">ID Number</th>
-                            <th className="px-4 py-3">Department</th>
-                            <th className="px-4 py-3">Batch</th>
-                            <th className="px-4 py-3 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800">
-                        {data.map((item) => (
-                            <tr key={item.id} className="hover:bg-slate-800/30">
-                                <td className="px-4 py-3 text-white font-medium">{item.name}</td>
-                                <td className="px-4 py-3 font-mono text-xs">{item.idNumber}</td>
-                                <td className="px-4 py-3">{item.department}</td>
-                                <td className="px-4 py-3">{item.batch}</td>
-                                <td className="px-4 py-3 text-right">
-                                    <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
-                                        <Edit2 className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="text-red-400" onClick={() => handleDelete(item.userId)}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </td>
+            <div className="bg-slate-900 rounded border border-slate-800 flex flex-col">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm text-slate-400">
+                        <thead className="bg-slate-800/50 text-xs uppercase font-semibold text-slate-500">
+                            <tr>
+                                <th className="px-4 py-3">Name</th>
+                                <th className="px-4 py-3">ID Number</th>
+                                <th className="px-4 py-3">Department</th>
+                                <th className="px-4 py-3">Batch</th>
+                                <th className="px-4 py-3 text-right">Actions</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800">
+                            {paginatedData.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="px-4 py-8 text-center text-slate-500">No students found matching filters.</td>
+                                </tr>
+                            ) : (
+                                paginatedData.map((item) => (
+                                    <tr key={item.id} className="hover:bg-slate-800/30">
+                                        <td className="px-4 py-3 text-white font-medium">
+                                            {item.name}
+                                            {item.isLeader && <span className="ml-2 text-[10px] lowercase bg-purple-500/20 text-purple-400 px-1 py-0.5 rounded border border-purple-500/30">Leader</span>}
+                                            {!item.isActive && <span className="ml-2 text-[10px] lowercase bg-red-500/20 text-red-400 px-1 py-0.5 rounded border border-red-500/30">Inactive</span>}
+                                        </td>
+                                        <td className="px-4 py-3 font-mono text-xs">{item.idNumber}</td>
+                                        <td className="px-4 py-3">{item.department}</td>
+                                        <td className="px-4 py-3">{item.batch}</td>
+                                        <td className="px-4 py-3 text-right">
+                                            <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                                                <Edit2 className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="text-red-400" onClick={() => handleDelete(item.userId)}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </td>
+                                    </tr>
+                                )))}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Pagination */}
+                {filteredData.length > 0 && (
+                    <div className="p-4 border-t border-slate-800 flex items-center justify-between">
+                        <span className="text-xs text-slate-500">
+                            Showing {Math.min((currentPage - 1) * itemsPerPage + 1, filteredData.length)} to {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length} entries
+                        </span>
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline" size="sm"
+                                className="h-8 border-slate-700 text-slate-300 hover:bg-slate-800"
+                                onClick={() => setCurrentPage(c => Math.max(1, c - 1))}
+                                disabled={currentPage === 1}
+                            >
+                                Previous
+                            </Button>
+                            <Button
+                                variant="outline" size="sm"
+                                className="h-8 border-slate-700 text-slate-300 hover:bg-slate-800"
+                                onClick={() => setCurrentPage(c => Math.min(totalPages, c + 1))}
+                                disabled={currentPage === totalPages}
+                            >
+                                Next
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </div>
             <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={isEditing ? "Edit Student" : "Add Student"}>
                 <div className="bg-slate-900 border border-slate-700 rounded-lg w-full p-1">
@@ -144,13 +236,36 @@ export function StudentTab() {
                             </SelectContent>
                         </Select>
 
+                        <div className="flex gap-6 mt-2">
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    id="isLeader"
+                                    checked={formData.isLeader || false}
+                                    onChange={(e) => setFormData({ ...formData, isLeader: e.target.checked })}
+                                    className="rounded border-slate-700 bg-slate-800"
+                                />
+                                <label htmlFor="isLeader" className="text-sm text-slate-300">Group Leader</label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    id="isActive"
+                                    checked={formData.isActive !== false} // Default true
+                                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                                    className="rounded border-slate-700 bg-slate-800"
+                                />
+                                <label htmlFor="isActive" className="text-sm text-slate-300">Active Account</label>
+                            </div>
+                        </div>
+
                         <div className="flex justify-end gap-2 mt-4">
                             <Button type="button" variant="ghost" onClick={() => setShowModal(false)}>Cancel</Button>
                             <Button type="submit" className="bg-blue-600">{isEditing ? "Update Student" : "Add Student"}</Button>
                         </div>
                     </form>
                 </div>
-            </Modal>
-        </div>
+            </Modal >
+        </div >
     )
 }

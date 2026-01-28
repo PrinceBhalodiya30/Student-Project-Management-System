@@ -28,9 +28,25 @@ export default function ReportsPage() {
 
     return (
         <div className="p-6 bg-slate-950 min-h-screen text-slate-100 flex flex-col gap-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight text-white mb-2">System Reports</h1>
-                <p className="text-slate-400">Overview of project statuses and student activity.</p>
+            <div className="flex justify-between items-end">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight text-white mb-2">System Reports</h1>
+                    <p className="text-slate-400">Overview of project statuses and student activity.</p>
+                </div>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => window.open('/api/reports/export?type=projects', '_blank')}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors flex items-center gap-2"
+                    >
+                        <FileText className="w-4 h-4" /> Export Projects
+                    </button>
+                    <button
+                        onClick={() => window.open('/api/reports/export?type=students', '_blank')}
+                        className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors flex items-center gap-2"
+                    >
+                        <Users className="w-4 h-4" /> Export Students
+                    </button>
+                </div>
             </div>
 
             {/* 1. Top Stats */}

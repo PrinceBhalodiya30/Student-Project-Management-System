@@ -11,7 +11,7 @@ export async function GET() {
             completedProjectsCount,
             totalProjectsCount,
             deptDistribution,
-            unassignedGroupsCount
+            unassignedProjectsCount
         ] = await Promise.all([
             prisma.project.count({ where: { status: 'IN_PROGRESS' } }),
             prisma.studentProfile.count(),
@@ -25,9 +25,10 @@ export async function GET() {
                     department: true
                 }
             }),
-            prisma.projectGroup.count({
+            prisma.project.count({
                 where: {
-                    Project: null
+                    guideId: null,
+                    status: { not: 'REJECTED' }
                 }
             })
         ]);
@@ -83,16 +84,32 @@ export async function GET() {
             include: { User: true }
         });
 
+        // 4. Fetch Faculty Load (Top 5 busy)
+        const faculty = await prisma.facultyProfile.findMany({
+            include: {
+                User: true,
+                Project: {
+                    where: { status: 'IN_PROGRESS' } // Only count active projects
+                }
+            }
+        });
+
+        const facultyLoad = faculty.map(f => ({
+            id: f.id,
+            name: f.User.fullName,
+            department: f.department || "General",
+            currentLoad: f.Project.length,
+            maxLoad: 5 // Hardcoded limit for now
+        })).sort((a, b) => b.currentLoad - a.currentLoad).slice(0, 5);
+
+
         // Combine and sort roughly (or just return separate lists)
-        // Ideally, we'd have a union, but for now let's manually construct a few items
-        // We'll just return them effectively.
-        // Let's format them for the UI:
         const activities = [
             ...recentProjects.map(p => ({
                 id: p.id,
                 title: "New Project Created",
                 desc: `Project "${p.title}" was created`,
-                time: p.createdAt, // We will format on client or here.
+                time: p.createdAt,
                 iconType: "project"
             })),
             ...recentStudents.map(s => ({
@@ -111,12 +128,12 @@ export async function GET() {
                 activeStudents: totalStudentsCount,
                 facultyAdvisors: totalFacultyCount,
                 completionRate: `${completionRate}%`,
-                // Mock department mapping for now as real data might be sparse
-                csCount: 45, // Map from result[5] in real app
+                csCount: 45,
                 itCount: 32,
-                unassignedGroups: unassignedGroupsCount
+                unassignedProjects: unassignedProjectsCount,
+                reportsSubmitted: completedProjectsCount
             },
-            approvals: formattedApprovals,
+            facultyLoad,
             recentActivity: activities
         });
 

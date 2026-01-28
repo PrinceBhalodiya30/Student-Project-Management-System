@@ -67,7 +67,7 @@ export function MeetingTab() {
             id: meeting.id,
             title: meeting.title,
             date: new Date(meeting.date).toISOString().split('T')[0],
-            projectId: meeting.projectId // This field needs to be added to GET
+            projectId: meeting.projectId // Uses the field from formatted API response
         })
         setShowModal(true)
     }

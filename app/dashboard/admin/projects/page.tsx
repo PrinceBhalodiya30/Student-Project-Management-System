@@ -89,7 +89,36 @@ export default function ProjectsDirectoryPage() {
         }
     }
 
-    // Helper for multi-select
+    // Search & Filter State
+    const [searchTerm, setSearchTerm] = useState("");
+    const [filterType, setFilterType] = useState("ALL");
+    const [filterDept, setFilterDept] = useState("ALL");
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 8;
+
+    // Derived Filtering Logic
+    const filteredProjects = projects.filter(project => {
+        const matchesSearch =
+            project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            project.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (project.ProjectGroup?.StudentProfile?.[0]?.User?.fullName || "").toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesType = filterType === "ALL" || project.type === filterType;
+        const matchesDept = filterDept === "ALL" || (project.ProjectGroup?.StudentProfile?.[0]?.department || "CS") === filterDept; // Assuming dept comes from student or added to project
+
+        return matchesSearch && matchesType && matchesDept;
+    });
+
+    // Pagination Logic
+    const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
+    const paginatedProjects = filteredProjects.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+    // Reset page when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, filterType, filterDept]);
+
+
     const toggleMember = (id: string) => {
         const current = (newProject as any).members || []
         if (current.includes(id)) {
@@ -115,20 +144,38 @@ export default function ProjectsDirectoryPage() {
             </div>
 
             {/* Filter Bar */}
-            <div className="bg-[#1e293b] p-4 rounded-lg border border-slate-800 my-6 flex gap-4">
-                <div className="relative flex-1">
+            <div className="bg-[#1e293b] p-4 rounded-lg border border-slate-800 my-6 flex gap-4 flex-wrap">
+                <div className="relative flex-1 min-w-[300px]">
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
                     <Input
                         className="bg-[#0f172a] border-slate-700 pl-10 text-slate-300"
                         placeholder="Search by Project ID, Title, or Team Leader..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <FilterDropdown label="Year: 2023-24" />
-                <FilterDropdown label="Type: Research" />
-                <FilterDropdown label="Department: CS" />
-                <Button variant="outline" className="bg-[#0f172a] border-slate-700 text-blue-400 hover:text-blue-300">
-                    <SlidersHorizontal className="mr-2 h-4 w-4" /> More Filters
-                </Button>
+
+                <select
+                    className="bg-[#0f172a] border border-slate-700 text-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                >
+                    <option value="ALL">All Types</option>
+                    <option value="MAJOR">Major Project</option>
+                    <option value="MINI">Mini Project</option>
+                    <option value="RESEARCH">Research</option>
+                </select>
+
+                <select
+                    className="bg-[#0f172a] border border-slate-700 text-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={filterDept}
+                    onChange={(e) => setFilterDept(e.target.value)}
+                >
+                    <option value="ALL">All Departments</option>
+                    <option value="CS">Computer Science</option>
+                    <option value="SE">Software Engineering</option>
+                    <option value="IT">Information Tech</option>
+                </select>
             </div>
 
             {/* Stats Cards Row */}
@@ -154,10 +201,10 @@ export default function ProjectsDirectoryPage() {
                 <div className="flex-1 overflow-y-auto">
                     {loading ? (
                         <div className="p-8 text-center text-slate-400">Loading projects...</div>
-                    ) : projects.length === 0 ? (
+                    ) : filteredProjects.length === 0 ? (
                         <div className="p-8 text-center text-slate-400">No projects found.</div>
                     ) : (
-                        projects.map((project) => (
+                        paginatedProjects.map((project) => (
                             <ProjectRow
                                 key={project.id}
                                 id={project.id}
@@ -173,6 +220,33 @@ export default function ProjectsDirectoryPage() {
                             />
                         ))
                     )}
+                </div>
+
+                {/* Pagination Controls */}
+                <div className="p-4 border-t border-slate-800 flex items-center justify-between bg-[#1e293b]">
+                    <span className="text-xs text-slate-500">
+                        Showing {Math.min((currentPage - 1) * itemsPerPage + 1, filteredProjects.length)} to {Math.min(currentPage * itemsPerPage, filteredProjects.length)} of {filteredProjects.length} entries
+                    </span>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 border-slate-700 text-slate-300 hover:bg-slate-800"
+                            onClick={() => setCurrentPage(c => Math.max(1, c - 1))}
+                            disabled={currentPage === 1}
+                        >
+                            Previous
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 border-slate-700 text-slate-300 hover:bg-slate-800"
+                            onClick={() => setCurrentPage(c => Math.min(totalPages, c + 1))}
+                            disabled={currentPage === totalPages || totalPages === 0}
+                        >
+                            Next
+                        </Button>
+                    </div>
                 </div>
             </div>
 
@@ -261,14 +335,7 @@ export default function ProjectsDirectoryPage() {
     )
 }
 
-function FilterDropdown({ label }: any) {
-    return (
-        <Button variant="outline" className="bg-[#0f172a] border-slate-700 text-slate-300 w-40 justify-between">
-            {label}
-            <ChevronDown className="h-4 w-4 opacity-50" />
-        </Button>
-    )
-}
+
 
 function StatBox({ icon, label, value }: any) {
     return (

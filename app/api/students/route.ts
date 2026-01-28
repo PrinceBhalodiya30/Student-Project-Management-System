@@ -19,7 +19,9 @@ export async function GET() {
             idNumber: s.StudentProfile?.idNumber || "N/A",
             department: s.StudentProfile?.department || "N/A",
             batch: s.StudentProfile?.batch || "N/A",
-            groupId: s.StudentProfile?.groupId || null
+            groupId: s.StudentProfile?.groupId || null,
+            isActive: s.isActive,
+            isLeader: s.StudentProfile?.isLeader || false
         }));
 
         return NextResponse.json(formatted);
@@ -39,13 +41,15 @@ export async function POST(req: Request) {
                 email: body.email,
                 password: "password123", // Default
                 role: "STUDENT",
+                isActive: body.isActive ?? true,
                 updatedAt: new Date(),
                 StudentProfile: {
                     create: {
                         id: randomUUID(),
                         idNumber: body.idNumber,
                         department: body.department,
-                        batch: body.batch
+                        batch: body.batch,
+                        isLeader: body.isLeader ?? false
                     }
                 }
             }

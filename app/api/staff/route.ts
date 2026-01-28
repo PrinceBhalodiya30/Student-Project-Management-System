@@ -23,9 +23,9 @@ export async function GET() {
             userId: user.id,
             name: user.fullName,
             email: user.email,
-            role: user.FacultyProfile?.designation || user.role,
+            role: user.FacultyProfile?.designation || user.role, // role here acts as designation
             department: user.FacultyProfile?.department || "N/A",
-            status: "Active", // Mock status as it's not in DB
+            status: user.isActive ? "Active" : "Inactive",
             initials: user.fullName.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase()
         }));
 
@@ -40,7 +40,7 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { name, email, department, role = "FACULTY", password } = body; // Password should be hashed in real app, using plain for now if auth allows or simple hash
+        const { name, email, department, role = "FACULTY", password, isActive = true } = body; // Password should be hashed in real app, using plain for now if auth allows or simple hash
 
         // Check if user exists
         const existing = await prisma.user.findUnique({ where: { email } });
@@ -55,6 +55,7 @@ export async function POST(request: Request) {
                 email,
                 password: password || "password123", // Default password
                 role: "FACULTY", // Enforce FACULTY role for staff management
+                isActive: isActive,
                 updatedAt: new Date(),
                 FacultyProfile: {
                     create: {

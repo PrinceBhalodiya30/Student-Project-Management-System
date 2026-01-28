@@ -13,18 +13,20 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         // Let's stick to User ID for consistency.
 
         const body = await request.json();
-        const { name, email, idNumber, department, batch } = body;
+        const { name, email, idNumber, department, batch, isActive, isLeader } = body;
 
         const updatedUser = await prisma.user.update({
             where: { id },
             data: {
                 fullName: name,
                 email,
+                isActive: isActive !== undefined ? isActive : undefined,
                 StudentProfile: {
                     update: {
                         idNumber,
                         department,
-                        batch
+                        batch,
+                        isLeader: isLeader !== undefined ? isLeader : undefined
                     }
                 }
             },

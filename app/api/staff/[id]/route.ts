@@ -5,7 +5,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     try {
         const { id } = await params;
         const body = await request.json();
-        const { name, email, department, role } = body;
+        const { name, email, department, role, isActive } = body;
 
         // Update User and Faculty Profile
         // Note: id is the User ID
@@ -14,6 +14,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
             data: {
                 fullName: name,
                 email,
+                isActive: isActive !== undefined ? isActive : undefined,
                 FacultyProfile: {
                     update: {
                         department: department,

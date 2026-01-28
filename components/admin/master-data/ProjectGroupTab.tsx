@@ -59,14 +59,43 @@ export function ProjectGroupTab() {
         fetchData()
     }
 
+    // Search & Filter State
+    const [searchTerm, setSearchTerm] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 9; // Grid layout 3x3 works well with 9
+
+    const filteredData = data.filter(group =>
+        group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (group.members || "").toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+    // Reset page on search
+    useEffect(() => setCurrentPage(1), [searchTerm]);
+
     return (
         <div className="space-y-4">
-            <div className="flex justify-between items-center">
-                <h3 className="text-white font-medium">Project Groups</h3>
-                <Button variant="outline" className="border-slate-700 text-slate-300" onClick={() => { setFormData({}); setShowModal(true); }}>New Group</Button>
+            <div className="flex flex-col gap-4">
+                <div className="flex justify-between items-center">
+                    <h3 className="text-white font-medium">Project Groups</h3>
+                    <Button variant="outline" className="border-slate-700 text-slate-300" onClick={() => { setFormData({}); setShowModal(true); }}>New Group</Button>
+                </div>
+                <div className="flex gap-4">
+                    <div className="relative flex-1">
+                        <Input
+                            placeholder="Search groups by name or members..."
+                            className="bg-slate-900 border-slate-700 text-slate-300 pl-4"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                </div>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {data.map(group => (
+                {paginatedData.map(group => (
                     <div key={group.id} className="bg-slate-900 p-4 rounded border border-slate-800 relative group">
                         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                             <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-white" onClick={() => handleEdit(group)}>
@@ -87,6 +116,39 @@ export function ProjectGroupTab() {
                     </div>
                 ))}
             </div>
+
+            {/* Pagination Controls */}
+            {filteredData.length > 0 && (
+                <div className="flex items-center justify-between border-t border-slate-800 pt-4">
+                    <span className="text-xs text-slate-500">
+                        Showing {Math.min((currentPage - 1) * itemsPerPage + 1, filteredData.length)} to {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length} entries
+                    </span>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 border-slate-700 text-slate-300 hover:bg-slate-800"
+                            onClick={() => setCurrentPage(c => Math.max(1, c - 1))}
+                            disabled={currentPage === 1}
+                        >
+                            Previous
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 border-slate-700 text-slate-300 hover:bg-slate-800"
+                            onClick={() => setCurrentPage(c => Math.min(totalPages, c + 1))}
+                            disabled={currentPage === totalPages || totalPages === 0}
+                        >
+                            Next
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            {filteredData.length === 0 && (
+                <div className="text-center py-8 text-slate-500">No project groups found.</div>
+            )}
 
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">

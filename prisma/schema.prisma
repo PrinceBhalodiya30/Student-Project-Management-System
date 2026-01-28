@@ -119,6 +119,7 @@ model StudentProfile {
   ProjectGroup ProjectGroup? @relation(fields: [groupId], references: [id])
   User         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   Attendance   MeetingAttendance[]
+  isLeader     Boolean       @default(false)
 }
 
 model User {
@@ -128,6 +129,7 @@ model User {
   fullName       String
   role           Role            @default(STUDENT)
   avatarUrl      String?
+  isActive       Boolean         @default(true)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime
   FacultyProfile FacultyProfile?
