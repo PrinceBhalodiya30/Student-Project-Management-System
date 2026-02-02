@@ -1,153 +1,205 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import {
-    LayoutDashboard,
-    FolderOpen,
-    Users,
-    FileBarChart,
-    Settings,
-    LogOut,
-    BookOpen,
-    MessageSquare,
-    Calendar,
-    Flag,
-    Plus,
-    Folder
-} from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import {
+    LayoutDashboard, FolderKanban, Users, FileText, Settings,
+    Database, ChevronLeft, Menu, LogOut, Sparkles
+} from "lucide-react"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+
+const navItems = [
+    { href: "/dashboard/admin", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/dashboard/admin/projects", label: "Projects", icon: FolderKanban },
+    { href: "/dashboard/admin/allocations", label: "Allocations", icon: Users },
+    { href: "/dashboard/admin/reports", label: "Reports", icon: FileText },
+    { href: "/dashboard/admin/settings", label: "Settings", icon: Settings },
+    { href: "/dashboard/admin/master-data", label: "Master Data", icon: Database },
+]
 
 export function Sidebar() {
     const pathname = usePathname()
+    const [isCollapsed, setIsCollapsed] = useState(false)
+    const [mounted, setMounted] = useState(false)
 
-    // Determine Role
-    const isStudent = pathname?.includes("/dashboard/student")
-    const isFaculty = pathname?.includes("/dashboard/faculty")
-    const isAdmin = pathname?.includes("/dashboard/admin")
+    useEffect(() => {
+        setMounted(true)
+    }, [])
 
-    // Default to student if nothing matches (or handle root dashboard)
-    const role = isAdmin ? "admin" : isFaculty ? "faculty" : "student"
-
-    const menulists = {
-        admin: [
-            { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard/admin" },
-            { icon: FolderOpen, label: "Allocations", href: "/dashboard/admin/allocations" },
-            { icon: Users, label: "Master Data", href: "/dashboard/admin/master-data" },
-            { icon: Folder, label: "All Projects", href: "/dashboard/admin/projects" },
-            { icon: FileBarChart, label: "Reports", href: "/dashboard/admin/reports" },
-            { icon: Settings, label: "Settings", href: "/dashboard/admin/settings" },
-        ],
-        faculty: [
-            { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard/faculty" },
-            { icon: FolderOpen, label: "Projects", href: "/dashboard/faculty/projects" },
-            { icon: Users, label: "Students", href: "/dashboard/faculty/students" },
-            { icon: FileBarChart, label: "Reports", href: "/dashboard/faculty/reports" },
-            { icon: Calendar, label: "Calendar", href: "/dashboard/faculty/calendar" },
-        ],
-        student: [
-            { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard/student" },
-            { icon: MessageSquare, label: "Team Chat", href: "/dashboard/student/chat" },
-            { icon: FolderOpen, label: "Resources", href: "/dashboard/student/resources" },
-            { icon: Flag, label: "Milestones", href: "/dashboard/student/milestones" },
-            { icon: Settings, label: "Settings", href: "/dashboard/student/settings" },
-        ]
+    const handleLogout = () => {
+        document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT"
+        window.location.href = "/login"
     }
 
-    const currentMenu = menulists[role as keyof typeof menulists]
-
     return (
-        <div className="flex h-screen w-64 flex-col border-r border-border bg-card text-card-foreground">
-            {/* Logo Area */}
-            <div className="flex h-16 items-center border-b border-border px-6 gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                    <BookOpen className="h-4 w-4" />
-                </div>
-                <div className="flex flex-col">
-                    <span className="text-sm font-bold tracking-tight">SPMS Portal</span>
-                    <span className="text-[10px] text-muted-foreground uppercase">{role}</span>
-                </div>
+        <>
+            {/* Mobile Menu Button */}
+            <div className="lg:hidden fixed top-4 left-4 z-50">
+                <Sheet>
+                    <SheetTrigger asChild>
+                        <Button size="icon" className="glass-modern hover-glow-cyan active-press">
+                            <Menu className="h-5 w-5" />
+                        </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="p-0 w-72 glass-modern border-r border-cyan-500/20">
+                        <SidebarContent pathname={pathname} onLogout={handleLogout} isMobile />
+                    </SheetContent>
+                </Sheet>
             </div>
 
-            {/* Navigation */}
-            <div className="flex-1 overflow-y-auto py-4 px-3">
-                <nav className="space-y-1">
-                    {currentMenu.map((item, index) => {
-                        const isActive = pathname === item.href
-                        return (
-                            <Link
-                                key={index}
-                                href={item.href}
-                                className={cn(
-                                    "group flex items-center gap-3.5 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
-                                    isActive
-                                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
-                                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                                )}
-                            >
-                                <item.icon className={cn(
-                                    "h-5 w-5 transition-transform duration-200 group-hover:scale-110",
-                                    isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
-                                )} />
-                                <span>{item.label}</span>
-                                {isActive && (
-                                    <div className="ml-auto h-2 w-2 rounded-full bg-white/50" />
-                                )}
-                            </Link>
-                        )
-                    })}
-                </nav>
-
-                {/* Role Specific Extra Sections */}
-                {role === 'student' && (
-                    <div className="mt-8 px-2">
-                        <div className="rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 p-5 text-white shadow-lg overflow-hidden relative">
-                            <div className="absolute top-0 right-0 -mr-4 -mt-4 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
-                            <h4 className="font-semibold mb-1 relative z-10">Pro Tip</h4>
-                            <p className="text-xs text-white/90 mb-3 relative z-10 leading-relaxed">
-                                Check your milestones regularly to stay on track!
-                            </p>
-                            <Button size="sm" variant="secondary" className="w-full h-8 text-xs font-semibold text-indigo-700 hover:bg-white/90">
-                                View Milestones
-                            </Button>
-                        </div>
-                    </div>
+            {/* Desktop Sidebar */}
+            <aside
+                className={cn(
+                    "hidden lg:flex flex-col h-screen glass-modern border-r border-cyan-500/20 sticky top-0 transition-all duration-500 ease-smooth animate-slide-right",
+                    isCollapsed ? "w-20" : "w-64"
                 )}
-            </div>
-
-            {/* Bottom Profile Section */}
-            <div className="p-4 border-t border-border/50 bg-muted/20">
-                {role === 'student' ? (
-                    <Button className="w-full bg-slate-900 text-white hover:bg-slate-800 shadow-lg">
-                        Switch Project
-                    </Button>
-                ) : (
-                    <div className="flex items-center gap-3 rounded-xl p-2 hover:bg-background transition-all border border-transparent hover:border-border cursor-pointer group">
-                        <Avatar className="h-10 w-10 border border-border shadow-sm">
-                            <AvatarImage src="/avatars/01.png" />
-                            <AvatarFallback>US</AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col overflow-hidden transition-all">
-                            <span className="truncate text-sm font-semibold">{titleCase(role)}</span>
-                            <span className="truncate text-xs text-muted-foreground group-hover:text-primary transition-colors">
-                                View Profile
-                            </span>
-                        </div>
-                        <Settings className="ml-auto h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                )}
-            </div>
-        </div>
+            >
+                <SidebarContent
+                    pathname={pathname}
+                    onLogout={handleLogout}
+                    isCollapsed={isCollapsed}
+                    onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
+                />
+            </aside>
+        </>
     )
 }
 
-function titleCase(str: string) {
-    return str.replace(
-        /\w\S*/g,
-        function (txt) {
-            return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
-        }
-    );
+function SidebarContent({
+    pathname,
+    onLogout,
+    isCollapsed = false,
+    onToggleCollapse,
+    isMobile = false
+}: {
+    pathname: string
+    onLogout: () => void
+    isCollapsed?: boolean
+    onToggleCollapse?: () => void
+    isMobile?: boolean
+}) {
+    return (
+        <div className="flex flex-col h-full p-4">
+            {/* Logo Section */}
+            <div className={cn(
+                "flex items-center gap-3 mb-8 relative",
+                isCollapsed && "justify-center"
+            )}>
+                <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-primary rounded-xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-300" />
+                    <div className="relative p-3 rounded-xl bg-gradient-primary shadow-lg shadow-cyan-500/30 hover-scale active-press">
+                        <Sparkles className="h-6 w-6 text-white" />
+                    </div>
+                </div>
+                {!isCollapsed && (
+                    <div>
+                        <h1 className="text-xl font-bold text-cyan-400">
+                            SPMS
+                        </h1>
+                        <p className="text-xs text-muted-foreground">Project Management</p>
+                    </div>
+                )}
+            </div>
+
+            {/* Navigation */}
+            <nav className="flex-1 space-y-2">
+                {navItems.map((item, index) => {
+                    const Icon = item.icon
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+
+                    return (
+                        <Link
+                            key={item.href}
+                            href={item.href}
+                            className={cn(
+                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden stagger-item",
+                                isCollapsed && "justify-center px-3",
+                                isActive
+                                    ? "bg-gradient-primary text-white shadow-lg shadow-cyan-500/30"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                            )}
+                            style={{ animationDelay: `${index * 0.1}s` }}
+                        >
+                            {/* Active Indicator */}
+                            {isActive && (
+                                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 animate-shimmer" />
+                            )}
+
+                            <Icon className={cn(
+                                "h-5 w-5 relative z-10 transition-transform duration-300",
+                                isActive ? "scale-110" : "group-hover:scale-110 group-hover:rotate-3"
+                            )} />
+
+                            {!isCollapsed && (
+                                <span className="font-medium relative z-10 animate-slide-left">
+                                    {item.label}
+                                </span>
+                            )}
+
+                            {/* Hover Glow */}
+                            {!isActive && (
+                                <div className="absolute inset-0 bg-gradient-primary opacity-0 group-hover:opacity-10 transition-opacity duration-300 rounded-xl" />
+                            )}
+                        </Link>
+                    )
+                })}
+            </nav>
+
+            {/* Profile Section */}
+            <div className={cn(
+                "mt-auto pt-4 border-t border-cyan-500/20",
+                isCollapsed && "flex justify-center"
+            )}>
+                <div className={cn(
+                    "flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-all duration-300 group cursor-pointer",
+                    isCollapsed && "flex-col gap-2"
+                )}>
+                    <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-primary rounded-full blur-md opacity-50 group-hover:opacity-75 transition-opacity animate-pulse-slow" />
+                        <Avatar className="h-10 w-10 border-2 border-cyan-500/30 relative">
+                            <AvatarFallback className="bg-gradient-primary text-white font-bold text-sm">
+                                AD
+                            </AvatarFallback>
+                        </Avatar>
+                    </div>
+
+                    {!isCollapsed && (
+                        <div className="flex-1 min-w-0 animate-slide-left">
+                            <p className="text-sm font-semibold truncate">Admin</p>
+                            <p className="text-xs text-muted-foreground truncate">admin@spms.edu</p>
+                        </div>
+                    )}
+
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={onLogout}
+                        className="hover:bg-red-500/10 hover:text-red-400 transition-colors duration-300 hover-scale active-press"
+                        title="Logout"
+                    >
+                        <LogOut className="h-4 w-4" />
+                    </Button>
+                </div>
+            </div>
+
+            {/* Collapse Toggle (Desktop Only) */}
+            {!isMobile && onToggleCollapse && (
+                <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={onToggleCollapse}
+                    className="absolute -right-3 top-20 glass-modern border border-cyan-500/20 hover-glow-cyan active-press"
+                >
+                    <ChevronLeft className={cn(
+                        "h-4 w-4 transition-transform duration-300",
+                        isCollapsed && "rotate-180"
+                    )} />
+                </Button>
+            )}
+        </div>
+    )
 }

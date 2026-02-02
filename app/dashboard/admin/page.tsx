@@ -1,28 +1,21 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { AdminTopBar } from "@/components/admin/admin-topbar"
 import { FacultyLoad } from "@/components/admin/faculty-load"
 import { RecentActivity } from "@/components/admin/recent-activity"
+import { AnimatedCounter } from "@/components/ui/animated-counter"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Separator } from "@/components/ui/separator"
 import {
-    Users,
-    Briefcase,
-    GraduationCap,
-    Activity,
-    ArrowUpRight,
-    CheckCircle2,
-    AlertCircle,
-    FileText,
-    LayoutDashboard,
-    ArrowRight
+    Users, Briefcase, GraduationCap, Activity,
+    TrendingUp, CheckCircle2, Clock, Sparkles
 } from "lucide-react"
 
 export default function AdminDashboard() {
+    const router = useRouter();
     const [stats, setStats] = useState<any>(null);
     const [facultyLoad, setFacultyLoad] = useState<any[]>([]);
     const [recentActivity, setRecentActivity] = useState<any[]>([]);
@@ -31,16 +24,43 @@ export default function AdminDashboard() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Keep the existing API call
-                const res = await fetch('/api/admin/stats');
+                // Use cache headers to prevent caching
+                const res = await fetch('/api/admin/stats', {
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    }
+                });
+
+                console.log('API Response Status:', res.status, res.statusText);
+
                 if (res.ok) {
                     const data = await res.json();
-                    setStats(data.stats);
+                    console.log('Dashboard data received:', data);
+                    console.log('Stats:', data.stats);
+
+                    if (data.stats) {
+                        setStats(data.stats);
+                        console.log('Stats state updated:', data.stats);
+                    } else {
+                        console.error('No stats in response data');
+                    }
+
                     setFacultyLoad(data.facultyLoad || []);
-                    setRecentActivity(data.recentActivity);
+                    setRecentActivity(data.recentActivity || []);
+                } else {
+                    console.error('API request failed:', res.status, res.statusText);
+                    const errorText = await res.text();
+                    console.error('Error response:', errorText);
                 }
             } catch (error) {
-                console.error("Failed to fetch dashboard stats", error);
+                console.error("Failed to fetch dashboard stats:", error);
+                if (error instanceof Error) {
+                    console.error("Error message:", error.message);
+                    console.error("Error stack:", error.stack);
+                }
             } finally {
                 setLoading(false);
             }
@@ -49,158 +69,189 @@ export default function AdminDashboard() {
         fetchData();
     }, []);
 
-    // Derived state for progress bars
-    const completionRate = stats?.completionRate ? parseFloat(stats.completionRate) : 0;
-    const activeProjectCount = stats?.activeProjects ? parseInt(stats.activeProjects) : 0;
-    const totalCapacity = 150; // Example total capacity
-    const capacityPercentage = Math.min(100, (activeProjectCount / totalCapacity) * 100);
+    // Handle both number and string formats for completionRate
+    const completionRate = stats?.completionRate
+        ? (typeof stats.completionRate === 'string'
+            ? parseFloat(stats.completionRate.replace('%', ''))
+            : stats.completionRate)
+        : 0;
 
     return (
-        <div className="flex flex-col min-h-screen bg-muted/10">
-            {/* Top Bar with distinct background */}
-            <div className="bg-background border-b border-border sticky top-0 z-30">
+        <div className="flex flex-col min-h-screen bg-background relative overflow-hidden">
+            {/* Animated Background */}
+            <div className="fixed inset-0 gradient-mesh-modern opacity-20 pointer-events-none" />
+            <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-900/20 via-background to-background pointer-events-none" />
+
+            {/* Floating Particles */}
+            <div className="particles">
+                <div className="particle" style={{ width: '100px', height: '100px', top: '10%', left: '10%', animationDelay: '0s' }} />
+                <div className="particle" style={{ width: '150px', height: '150px', top: '60%', right: '10%', animationDelay: '2s' }} />
+                <div className="particle" style={{ width: '80px', height: '80px', bottom: '20%', left: '20%', animationDelay: '4s' }} />
+            </div>
+
+            {/* TopBar */}
+            <div className="glass-modern border-b border-cyan-500/20 sticky top-0 z-30 relative">
                 <AdminTopBar title="Dashboard" />
             </div>
 
-            <main className="flex-1 p-6 md:p-8 space-y-8 max-w-[1600px] mx-auto w-full">
-
-                {/* Header Section */}
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <main suppressHydrationWarning className="flex-1 p-6 md:p-8 space-y-8 max-w-[1600px] mx-auto w-full relative z-10">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-slide-down">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-foreground">Overview</h1>
-                        <p className="text-muted-foreground mt-1">Welcome back, Administrator. Here's what's happening today.</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" className="gap-2" onClick={() => window.location.reload()}>
-                            <Activity className="h-4 w-4" />
-                            Refresh Data
-                        </Button>
-                        <Button className="gap-2" onClick={() => window.location.href = '/dashboard/admin/allocations'}>
-                            <ArrowUpRight className="h-4 w-4" />
-                            Allocate Groups
-                        </Button>
+                        <h1 className="text-4xl md:text-5xl font-bold tracking-tight gradient-primary bg-clip-text text-transparent flex items-center gap-3">
+                            <Sparkles className="h-8 w-8 text-cyan-400 animate-pulse-slow" />
+                            Overview
+                        </h1>
+                        <p className="text-muted-foreground mt-2">Welcome back, Administrator. Here's what's happening today.</p>
                     </div>
                 </div>
 
-                {/* KPI Cards Row */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <Card className="shadow-sm hover:shadow-md transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
-                            <Briefcase className="h-4 w-4 text-muted-foreground" />
+                {/* Stats Cards Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {/* Total Projects */}
+                    <Card className="glass-modern border-cyan-500/20 hover-float stagger-item relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-500" />
+                        <CardHeader className="relative z-10 flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">Total Projects</CardTitle>
+                            <div className="p-2 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 shadow-lg shadow-cyan-500/30 hover-scale">
+                                <Briefcase className="h-4 w-4 text-white" />
+                            </div>
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{loading ? "..." : stats?.activeProjects}</div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                <span className={completionRate > 50 ? "text-emerald-600" : "text-amber-600"}>
-                                    {loading ? "..." : `${stats?.completionRate}%`} completion
-                                </span> rate
-                            </p>
-                            <Progress value={completionRate} className="h-1 mt-3" />
+                        <CardContent className="relative z-10">
+                            <div className="text-4xl font-bold text-cyan-400">
+                                <AnimatedCounter to={stats?.totalProjects || 0} />
+                            </div>
+                            <div className="flex items-center gap-1 mt-2 text-xs text-emerald-400">
+                                <TrendingUp className="h-3 w-3" />
+                                <span>+12% from last month</span>
+                            </div>
                         </CardContent>
                     </Card>
 
-                    <Card className="shadow-sm hover:shadow-md transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Active Students</CardTitle>
-                            <Users className="h-4 w-4 text-muted-foreground" />
+                    {/* Active Students */}
+                    <Card className="glass-modern border-cyan-500/20 hover-float stagger-item relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-500" />
+                        <CardHeader className="relative z-10 flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">Active Students</CardTitle>
+                            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 shadow-lg shadow-blue-500/30 hover-scale">
+                                <GraduationCap className="h-4 w-4 text-white" />
+                            </div>
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{loading ? "..." : stats?.activeStudents}</div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Across {Math.ceil(activeProjectCount / 4)} groups
-                            </p>
+                        <CardContent className="relative z-10">
+                            <div className="text-4xl font-bold text-blue-400">
+                                <AnimatedCounter to={stats?.activeStudents || 0} />
+                            </div>
+                            <div className="flex items-center gap-1 mt-2 text-xs text-emerald-400">
+                                <TrendingUp className="h-3 w-3" />
+                                <span>+8% from last month</span>
+                            </div>
                         </CardContent>
                     </Card>
 
-                    <Card className="shadow-sm hover:shadow-md transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Faculty Mentors</CardTitle>
-                            <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                    {/* Faculty Mentors */}
+                    <Card className="glass-modern border-cyan-500/20 hover-float stagger-item relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-500" />
+                        <CardHeader className="relative z-10 flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">Faculty Mentors</CardTitle>
+                            <div className="p-2 rounded-xl bg-gradient-success shadow-lg shadow-emerald-500/30 hover-scale">
+                                <Users className="h-4 w-4 text-white" />
+                            </div>
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{loading ? "..." : stats?.facultyAdvisors}</div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Active guides
-                            </p>
+                        <CardContent className="relative z-10">
+                            <div className="text-4xl font-bold text-emerald-400">
+                                <AnimatedCounter to={stats?.totalFaculty || 0} />
+                            </div>
+                            <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                                <Activity className="h-3 w-3" />
+                                <span>{stats?.activeFaculty || 0} active</span>
+                            </div>
                         </CardContent>
                     </Card>
 
-                    <Card className="shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-amber-500">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Pending Actions</CardTitle>
-                            <AlertCircle className="h-4 w-4 text-amber-500" />
+                    {/* Completion Rate */}
+                    <Card className="glass-modern border-cyan-500/20 hover-float stagger-item relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-500" />
+                        <CardHeader className="relative z-10 flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">Completion Rate</CardTitle>
+                            <div className="p-2 rounded-xl bg-gradient-warning shadow-lg shadow-amber-500/30 hover-scale">
+                                <CheckCircle2 className="h-4 w-4 text-white" />
+                            </div>
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{loading ? "..." : (parseInt(stats?.unassignedProjects || "0"))}</div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Requires attention
-                            </p>
+                        <CardContent className="relative z-10">
+                            <div className="text-4xl font-bold text-amber-400">
+                                <AnimatedCounter to={Math.round(completionRate)} />%
+                            </div>
+                            <Progress value={completionRate} className="mt-3 h-2" />
                         </CardContent>
                     </Card>
                 </div>
 
-                {/* Main Content Grid: 2/3 Lef, 1/3 Right */}
-                <div className="grid gap-6 lg:grid-cols-3">
+                {/* Main Content Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Faculty Load */}
+                    <Card className="lg:col-span-2 glass-modern border-cyan-500/20 hover-float animate-slide-up">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Users className="h-5 w-5 text-cyan-400" />
+                                Faculty Workload
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <FacultyLoad facultyLoad={facultyLoad} />
+                        </CardContent>
+                    </Card>
 
-                    {/* Left Column (Wide) */}
-                    <div className="lg:col-span-2 space-y-6">
+                    {/* Recent Activity */}
+                    <Card className="glass-modern border-cyan-500/20 hover-float animate-slide-up">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Clock className="h-5 w-5 text-cyan-400" />
+                                Recent Activity
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <RecentActivity activities={recentActivity} />
+                        </CardContent>
+                    </Card>
+                </div>
 
-                        {/* Project Status Overview */}
-                        {/* Simplified Project Status Overview */}
-                        <Card className="shadow-sm">
-                            <CardHeader>
-                                <CardTitle>Overview</CardTitle>
-                                <CardDescription>Quick access to pending items</CardDescription>
-                            </CardHeader>
-                            <CardContent className="grid grid-cols-1 gap-4">
-                                <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-900/20 flex flex-col justify-between h-32 hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors cursor-pointer" onClick={() => window.location.href = '/dashboard/admin/allocations'}>
-                                    <div className="flex items-start justify-between">
-                                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                                            <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                                        </div>
-                                        <ArrowRight className="h-4 w-4 text-blue-400" />
-                                    </div>
-                                    <div>
-                                        <div className="text-3xl font-bold text-blue-950 dark:text-blue-100">{stats?.unassignedProjects || 0}</div>
-                                        <div className="text-sm font-medium text-blue-600 dark:text-blue-300">Unassigned Projects</div>
-                                    </div>
+                {/* Quick Actions */}
+                <Card className="glass-modern border-cyan-500/20 hover-float animate-fade-in">
+                    <CardHeader>
+                        <CardTitle>Quick Actions</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <Button
+                                onClick={() => router.push('/dashboard/admin/projects')}
+                                className="bg-gradient-primary hover:opacity-90 shadow-lg shadow-cyan-500/30 hover-scale active-press h-auto py-4"
+                            >
+                                <div className="flex flex-col items-center gap-2">
+                                    <Briefcase className="h-6 w-6" />
+                                    <span>Create Project</span>
                                 </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Faculty/Guide Load */}
-                        <Card className="shadow-sm">
-                            <CardHeader>
-                                <CardTitle>Faculty Workload</CardTitle>
-                                <CardDescription>Active project distribution among top guides</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <FacultyLoad faculty={facultyLoad} loading={loading} />
-                            </CardContent>
-                        </Card>
-
-                    </div>
-
-                    {/* Right Column (Narrow) */}
-                    <div className="space-y-6">
-
-
-
-                        {/* Recent Activity Feed */}
-                        <Card className="shadow-sm h-[500px] flex flex-col">
-                            <CardHeader>
-                                <CardTitle className="text-lg">Recent Activity</CardTitle>
-                                <CardDescription>Latest system events</CardDescription>
-                            </CardHeader>
-                            <CardContent className="flex-1 overflow-hidden p-0 px-6 pb-6">
-                                <RecentActivity activities={recentActivity} loading={loading} />
-                            </CardContent>
-                        </Card>
-
-                    </div>
-
-                </div>
+                            </Button>
+                            <Button
+                                onClick={() => router.push('/dashboard/admin/allocations')}
+                                className="bg-gradient-success hover:opacity-90 shadow-lg shadow-emerald-500/30 hover-scale active-press h-auto py-4"
+                            >
+                                <div className="flex flex-col items-center gap-2">
+                                    <Users className="h-6 w-6" />
+                                    <span>Assign Faculty</span>
+                                </div>
+                            </Button>
+                            <Button
+                                onClick={() => router.push('/dashboard/admin/reports')}
+                                className="bg-gradient-warning hover:opacity-90 shadow-lg shadow-amber-500/30 hover-scale active-press h-auto py-4"
+                            >
+                                <div className="flex flex-col items-center gap-2">
+                                    <Activity className="h-6 w-6" />
+                                    <span>View Reports</span>
+                                </div>
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
             </main>
         </div>
     )

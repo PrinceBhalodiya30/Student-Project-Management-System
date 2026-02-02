@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { randomUUID } from "crypto";
+import { hashPassword } from "@/lib/auth";
 
 // GET: Fetch all staff (Faculty) for Master Data
 export async function GET() {
@@ -40,7 +41,7 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { name, email, department, role = "FACULTY", password, isActive = true } = body; // Password should be hashed in real app, using plain for now if auth allows or simple hash
+        const { name, email, department, role = "FACULTY", password, isActive = true } = body;
 
         // Check if user exists
         const existing = await prisma.user.findUnique({ where: { email } });
@@ -48,12 +49,14 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "User already exists with this email" }, { status: 400 });
         }
 
+        const hashedPassword = await hashPassword(password || "password123");
+
         const newUser = await prisma.user.create({
             data: {
                 id: randomUUID(),
                 fullName: name,
                 email,
-                password: password || "password123", // Default password
+                password: hashedPassword,
                 role: "FACULTY", // Enforce FACULTY role for staff management
                 isActive: isActive,
                 updatedAt: new Date(),

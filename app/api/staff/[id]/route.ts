@@ -1,27 +1,34 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { hashPassword } from "@/lib/auth";
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await params;
         const body = await request.json();
-        const { name, email, department, role, isActive } = body;
+        const { name, email, department, role, isActive, password } = body;
 
-        // Update User and Faculty Profile
-        // Note: id is the User ID
+        // Prepare update data
+        const updateData: any = {
+            fullName: name,
+            email,
+            isActive: isActive !== undefined ? isActive : undefined,
+            FacultyProfile: {
+                update: {
+                    department: department,
+                    designation: role
+                }
+            }
+        };
+
+        // If password is provided (limit to non-empty strings), hash and update it
+        if (password && password.trim() !== "") {
+            updateData.password = await hashPassword(password);
+        }
+
         const updatedUser = await prisma.user.update({
             where: { id },
-            data: {
-                fullName: name,
-                email,
-                isActive: isActive !== undefined ? isActive : undefined,
-                FacultyProfile: {
-                    update: {
-                        department: department,
-                        designation: role
-                    }
-                }
-            },
+            data: updateData,
             include: { FacultyProfile: true }
         });
 

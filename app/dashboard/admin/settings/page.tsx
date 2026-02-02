@@ -7,14 +7,14 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
-import { Bell, Lock, User, Settings as SettingsIcon, Shield } from "lucide-react"
+import { Bell, Lock, User, Settings as SettingsIcon, Shield, Save } from "lucide-react"
 import { useState, useEffect } from "react"
+import { AdminTopBar } from "@/components/admin/admin-topbar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 export default function SettingsPage() {
     const [profile, setProfile] = useState<any>({ fullName: '', email: '', bio: 'System Administrator' });
     const [loading, setLoading] = useState(true);
-
-    // Password Form State
     const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
 
     useEffect(() => {
@@ -22,11 +22,10 @@ export default function SettingsPage() {
     }, []);
 
     const fetchProfile = async () => {
-        // Mocking session email for now
         const res = await fetch('/api/settings/profile?email=admin@spms.edu');
         if (res.ok) {
             const data = await res.json();
-            setProfile({ ...data, bio: 'System Administrator' }); // Bio is static for now
+            setProfile({ ...data, bio: 'System Administrator' });
         }
         setLoading(false);
     }
@@ -37,7 +36,7 @@ export default function SettingsPage() {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    currentEmail: 'admin@spms.edu', // Should come from session
+                    currentEmail: 'admin@spms.edu',
                     name: profile.fullName,
                     email: profile.email
                 })
@@ -79,132 +78,225 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="flex flex-col gap-6 p-6 h-full bg-slate-950 text-slate-100 overflow-y-auto">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Settings</h1>
-                <p className="text-slate-400">Manage your account settings and set e-mail preferences.</p>
+        <div className="flex flex-col min-h-screen bg-background relative overflow-hidden">
+            {/* Gradient Background */}
+            <div className="fixed inset-0 gradient-mesh-modern opacity-20 pointer-events-none" />
+            <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-900/20 via-background to-background pointer-events-none" />
+
+            {/* TopBar */}
+            <div className="glass-modern border-b border-cyan-500/20 sticky top-0 z-30 relative">
+                <AdminTopBar title="Settings" />
             </div>
 
-            <Tabs defaultValue="general" className="w-full">
-                <TabsList className="grid w-full grid-cols-4 lg:w-[400px] bg-slate-900">
-                    <TabsTrigger value="general">General</TabsTrigger>
-                    <TabsTrigger value="notifications">Notifications</TabsTrigger>
-                    <TabsTrigger value="security">Security</TabsTrigger>
-                    <TabsTrigger value="system">System</TabsTrigger>
-                </TabsList>
-
-                <div className="mt-6 space-y-6">
-                    {/* General Settings */}
-                    <TabsContent value="general" className="space-y-4">
-                        <Card className="bg-slate-900 border-slate-800">
-                            <CardHeader>
-                                <CardTitle className="text-white flex items-center gap-2"><User className="h-5 w-5" /> Profile Information</CardTitle>
-                                <CardDescription className="text-slate-400">Update your account's profile information and email address.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="name" className="text-slate-200">Name</Label>
-                                    <Input id="name" value={profile.fullName} onChange={e => setProfile({ ...profile, fullName: e.target.value })} className="bg-slate-950 border-slate-800 text-slate-100" />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="email" className="text-slate-200">Email</Label>
-                                    <Input id="email" value={profile.email} onChange={e => setProfile({ ...profile, email: e.target.value })} className="bg-slate-950 border-slate-800 text-slate-100" />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="bio" className="text-slate-200">Bio</Label>
-                                    <Input id="bio" value={profile.bio} disabled className="bg-slate-950 border-slate-800 text-slate-100 opacity-50" />
-                                </div>
-                            </CardContent>
-                            <CardFooter className="border-t border-slate-800 pt-4">
-                                <Button className="bg-blue-600 hover:bg-blue-500" onClick={handleProfileUpdate}>Save Changes</Button>
-                            </CardFooter>
-                        </Card>
-                    </TabsContent>
-
-                    {/* Notifications Settings (Visual Only) */}
-                    <TabsContent value="notifications" className="space-y-4">
-                        <Card className="bg-slate-900 border-slate-800">
-                            <CardHeader>
-                                <CardTitle className="text-white flex items-center gap-2"><Bell className="h-5 w-5" /> Notification Preferences</CardTitle>
-                                <CardDescription className="text-slate-400">Configure how you receive notifications.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="flex items-center justify-between space-x-2">
-                                    <Label htmlFor="new-project" className="flex flex-col space-y-1">
-                                        <span className="text-white">New Project Proposals</span>
-                                        <span className="font-normal text-xs text-slate-400">Receive emails when new projects are proposed.</span>
-                                    </Label>
-                                    <Switch id="new-project" defaultChecked />
-                                </div>
-                                <Separator className="bg-slate-800" />
-                                <div className="flex items-center justify-between space-x-2">
-                                    <Label htmlFor="allocations" className="flex flex-col space-y-1">
-                                        <span className="text-white">Allocation Updates</span>
-                                        <span className="font-normal text-xs text-slate-400">Get notified when auto-allocation completes.</span>
-                                    </Label>
-                                    <Switch id="allocations" defaultChecked />
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    {/* Security Settings */}
-                    <TabsContent value="security" className="space-y-4">
-                        <Card className="bg-slate-900 border-slate-800">
-                            <CardHeader>
-                                <CardTitle className="text-white flex items-center gap-2"><Lock className="h-5 w-5" /> Password & Security</CardTitle>
-                                <CardDescription className="text-slate-400">Manage your password and security settings.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="current-password" className="text-slate-200">Current Password</Label>
-                                    <Input id="current-password" type="password"
-                                        value={passwordData.currentPassword} onChange={e => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                                        className="bg-slate-950 border-slate-800 text-slate-100" />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="new-password" className="text-slate-200">New Password</Label>
-                                    <Input id="new-password" type="password"
-                                        value={passwordData.newPassword} onChange={e => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                                        className="bg-slate-950 border-slate-800 text-slate-100" />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="confirm-password" className="text-slate-200">Confirm New Password</Label>
-                                    <Input id="confirm-password" type="password"
-                                        value={passwordData.confirmPassword} onChange={e => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                                        className="bg-slate-950 border-slate-800 text-slate-100" />
-                                </div>
-                            </CardContent>
-                            <CardFooter className="border-t border-slate-800 pt-4">
-                                <Button className="bg-blue-600 hover:bg-blue-500" onClick={handlePasswordUpdate}>Update Password</Button>
-                            </CardFooter>
-                        </Card>
-                    </TabsContent>
-
-                    {/* System Settings (Visual Only) */}
-                    <TabsContent value="system" className="space-y-4">
-                        <Card className="bg-slate-900 border-slate-800">
-                            <CardHeader>
-                                <CardTitle className="text-white flex items-center gap-2"><SettingsIcon className="h-5 w-5" /> System Configuration</CardTitle>
-                                <CardDescription className="text-slate-400">Manage global system settings.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="academic-year" className="text-slate-200">Current Academic Year</Label>
-                                    <Input id="academic-year" defaultValue="2023-2024" className="bg-slate-950 border-slate-800 text-slate-100" />
-                                </div>
-                                <div className="flex items-center justify-between space-x-2 mt-4">
-                                    <Label htmlFor="maintenance" className="flex flex-col space-y-1">
-                                        <span className="text-white">Maintenance Mode</span>
-                                        <span className="font-normal text-xs text-slate-400">Prevent users from accessing the system during updates.</span>
-                                    </Label>
-                                    <Switch id="maintenance" />
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
+            <main className="flex-1 p-6 md:p-8 space-y-6 max-w-[1200px] mx-auto w-full relative z-10">
+                {/* Header */}
+                <div>
+                    <h1 className="text-4xl font-bold tracking-tight text-cyan-400 animate-slide-down">
+                        Settings
+                    </h1>
+                    <p className="text-muted-foreground mt-2">Manage your account settings and preferences</p>
                 </div>
-            </Tabs>
+
+                <Tabs defaultValue="general" className="w-full">
+                    <TabsList className="glass-modern border-cyan-500/20 grid w-full grid-cols-4 lg:w-[500px]">
+                        <TabsTrigger value="general" className="data-[state=active]:bg-gradient-to-r data-[state=active]:bg-gradient-primary data-[state=active]:text-white">
+                            <User className="h-4 w-4 mr-2" />
+                            General
+                        </TabsTrigger>
+                        <TabsTrigger value="notifications" className="data-[state=active]:bg-gradient-to-r data-[state=active]:bg-gradient-primary data-[state=active]:text-white">
+                            <Bell className="h-4 w-4 mr-2" />
+                            Alerts
+                        </TabsTrigger>
+                        <TabsTrigger value="security" className="data-[state=active]:bg-gradient-to-r data-[state=active]:bg-gradient-primary data-[state=active]:text-white">
+                            <Lock className="h-4 w-4 mr-2" />
+                            Security
+                        </TabsTrigger>
+                        <TabsTrigger value="system" className="data-[state=active]:bg-gradient-to-r data-[state=active]:bg-gradient-primary data-[state=active]:text-white">
+                            <SettingsIcon className="h-4 w-4 mr-2" />
+                            System
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <div className="mt-6 space-y-6">
+                        {/* General Settings */}
+                        <TabsContent value="general" className="space-y-6">
+                            <Card className="glass-modern border-cyan-500/20">
+                                <CardHeader>
+                                    <div className="flex items-center gap-4">
+                                        <Avatar className="h-20 w-20 border-4 border-violet-500/30 shadow-lg shadow-violet-500/20">
+                                            <AvatarFallback className="bg-gradient-to-br bg-gradient-primary text-white text-2xl font-bold">
+                                                AD
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <CardTitle className="text-2xl">Profile Information</CardTitle>
+                                            <CardDescription>Update your personal details</CardDescription>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="name">Full Name</Label>
+                                        <Input
+                                            id="name"
+                                            className="glass-modern border-cyan-500/20"
+                                            value={profile.fullName}
+                                            onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
+                                            placeholder="Enter your full name"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="email">Email</Label>
+                                        <Input
+                                            id="email"
+                                            type="email"
+                                            className="glass-modern border-cyan-500/20"
+                                            value={profile.email}
+                                            onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                                            placeholder="admin@spms.edu"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="bio">Role</Label>
+                                        <Input
+                                            id="bio"
+                                            className="glass-modern border-cyan-500/20"
+                                            value={profile.bio}
+                                            disabled
+                                        />
+                                    </div>
+                                </CardContent>
+                                <CardFooter>
+                                    <Button
+                                        onClick={handleProfileUpdate}
+                                        className="bg-gradient-to-r bg-gradient-primary hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-cyan-500/30"
+                                    >
+                                        <Save className="h-4 w-4 mr-2" />
+                                        Save Changes
+                                    </Button>
+                                </CardFooter>
+                            </Card>
+                        </TabsContent>
+
+                        {/* Notifications */}
+                        <TabsContent value="notifications" className="space-y-6">
+                            <Card className="glass-modern border-cyan-500/20">
+                                <CardHeader>
+                                    <CardTitle>Notification Preferences</CardTitle>
+                                    <CardDescription>Configure how you receive alerts</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-6">
+                                    <div className="flex items-center justify-between p-4 glass-modern border-cyan-500/20 rounded-lg">
+                                        <div className="space-y-0.5">
+                                            <Label className="text-base">Email Notifications</Label>
+                                            <p className="text-sm text-muted-foreground">Receive email updates for new projects</p>
+                                        </div>
+                                        <Switch defaultChecked />
+                                    </div>
+                                    <div className="flex items-center justify-between p-4 glass-modern border-cyan-500/20 rounded-lg">
+                                        <div className="space-y-0.5">
+                                            <Label className="text-base">Project Updates</Label>
+                                            <p className="text-sm text-muted-foreground">Get notified when projects are submitted</p>
+                                        </div>
+                                        <Switch defaultChecked />
+                                    </div>
+                                    <div className="flex items-center justify-between p-4 glass-modern border-cyan-500/20 rounded-lg">
+                                        <div className="space-y-0.5">
+                                            <Label className="text-base">System Alerts</Label>
+                                            <p className="text-sm text-muted-foreground">Important system notifications</p>
+                                        </div>
+                                        <Switch defaultChecked />
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+
+                        {/* Security */}
+                        <TabsContent value="security" className="space-y-6">
+                            <Card className="glass-modern border-cyan-500/20">
+                                <CardHeader>
+                                    <CardTitle>Change Password</CardTitle>
+                                    <CardDescription>Update your account password</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="current">Current Password</Label>
+                                        <Input
+                                            id="current"
+                                            type="password"
+                                            className="glass-modern border-cyan-500/20"
+                                            value={passwordData.currentPassword}
+                                            onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="new">New Password</Label>
+                                        <Input
+                                            id="new"
+                                            type="password"
+                                            className="glass-modern border-cyan-500/20"
+                                            value={passwordData.newPassword}
+                                            onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="confirm">Confirm New Password</Label>
+                                        <Input
+                                            id="confirm"
+                                            type="password"
+                                            className="glass-modern border-cyan-500/20"
+                                            value={passwordData.confirmPassword}
+                                            onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                                        />
+                                    </div>
+                                </CardContent>
+                                <CardFooter>
+                                    <Button
+                                        onClick={handlePasswordUpdate}
+                                        className="bg-gradient-to-r bg-gradient-primary hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-cyan-500/30"
+                                    >
+                                        <Lock className="h-4 w-4 mr-2" />
+                                        Update Password
+                                    </Button>
+                                </CardFooter>
+                            </Card>
+                        </TabsContent>
+
+                        {/* System */}
+                        <TabsContent value="system" className="space-y-6">
+                            <Card className="glass-modern border-cyan-500/20">
+                                <CardHeader>
+                                    <CardTitle>System Preferences</CardTitle>
+                                    <CardDescription>Configure system-wide settings</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-6">
+                                    <div className="flex items-center justify-between p-4 glass-modern border-cyan-500/20 rounded-lg">
+                                        <div className="space-y-0.5">
+                                            <Label className="text-base">Auto-save</Label>
+                                            <p className="text-sm text-muted-foreground">Automatically save changes</p>
+                                        </div>
+                                        <Switch defaultChecked />
+                                    </div>
+                                    <div className="flex items-center justify-between p-4 glass-modern border-cyan-500/20 rounded-lg">
+                                        <div className="space-y-0.5">
+                                            <Label className="text-base">Dark Mode</Label>
+                                            <p className="text-sm text-muted-foreground">Use dark theme</p>
+                                        </div>
+                                        <Switch defaultChecked />
+                                    </div>
+                                    <div className="flex items-center justify-between p-4 glass-modern border-cyan-500/20 rounded-lg">
+                                        <div className="space-y-0.5">
+                                            <Label className="text-base">Compact View</Label>
+                                            <p className="text-sm text-muted-foreground">Reduce spacing in lists</p>
+                                        </div>
+                                        <Switch />
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    </div>
+                </Tabs>
+            </main>
         </div>
     )
 }

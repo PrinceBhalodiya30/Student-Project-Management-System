@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { randomUUID } from "crypto";
+import { hashPassword } from "@/lib/auth";
 
 export async function GET() {
     try {
@@ -33,13 +34,15 @@ export async function GET() {
 export async function POST(req: Request) {
     try {
         const body = await req.json();
+        const hashedPassword = await hashPassword(body.password || "password123");
+
         // Create User AND StudentProfile
         const newUser = await prisma.user.create({
             data: {
                 id: randomUUID(),
                 fullName: body.name,
                 email: body.email,
-                password: "password123", // Default
+                password: hashedPassword,
                 role: "STUDENT",
                 isActive: body.isActive ?? true,
                 updatedAt: new Date(),

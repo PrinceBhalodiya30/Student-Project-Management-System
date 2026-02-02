@@ -1,9 +1,9 @@
 "use client"
 
-import { Bell, Search, Settings, HelpCircle, Menu } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Search, Bell, User, LogOut, Settings } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -12,236 +12,199 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Sidebar } from "@/components/dashboard/sidebar" // Reusing sidebar for mobile
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+
+interface Notification {
+    id: string
+    title: string
+    message: string
+    isRead: boolean
+    createdAt: string
+}
 
 export function AdminTopBar({ title }: { title?: string }) {
-    const [scrolled, setScrolled] = useState(false)
-    const [searchQuery, setSearchQuery] = useState("")
-    const router = useRouter()
+    const [date, setDate] = useState<Date | null>(null)
+    const [notifications, setNotifications] = useState<Notification[]>([])
+    const [loading, setLoading] = useState(false)
 
+    // Hydration safe date & Fetch Notifications
     useEffect(() => {
-        const handleScroll = () => {
-            setScrolled(window.scrollY > 10)
-        }
-        window.addEventListener("scroll", handleScroll)
-        return () => window.removeEventListener("scroll", handleScroll)
+        setDate(new Date())
+        const timer = setInterval(() => setDate(new Date()), 60000)
+
+        fetchNotifications()
+
+        return () => clearInterval(timer)
     }, [])
 
-    const [searchResults, setSearchResults] = useState<{ projects: any[], staff: any[], students: any[] } | null>(null)
-    const [showResults, setShowResults] = useState(false)
-    const [isSearching, setIsSearching] = useState(false)
-
-    useEffect(() => {
-        const delayDebounceFn = setTimeout(async () => {
-            if (searchQuery.length >= 2) {
-                setIsSearching(true)
-                try {
-                    const res = await fetch(`/api/admin/search?q=${encodeURIComponent(searchQuery)}`)
-                    if (res.ok) {
-                        const data = await res.json()
-                        setSearchResults(data)
-                        setShowResults(true)
-                    }
-                } catch (error) {
-                    console.error("Search error", error)
-                } finally {
-                    setIsSearching(false)
-                }
-            } else {
-                setShowResults(false)
-                setSearchResults(null)
+    const fetchNotifications = async () => {
+        try {
+            const res = await fetch('/api/notifications')
+            if (res.ok) {
+                const data = await res.json()
+                setNotifications(data)
             }
-        }, 300)
-
-        return () => clearTimeout(delayDebounceFn)
-    }, [searchQuery])
-
-    const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter' && searchQuery.trim()) {
-            setShowResults(false)
-            router.push(`/dashboard/admin/search?q=${encodeURIComponent(searchQuery)}`)
+        } catch (error) {
+            console.error("Failed to fetch notifications")
         }
     }
 
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = () => setShowResults(false)
-        window.addEventListener("click", handleClickOutside)
-        return () => window.removeEventListener("click", handleClickOutside)
-    }, [])
+    const markAllAsRead = async () => {
+        try {
+            setLoading(true)
+            const res = await fetch('/api/notifications', { method: 'PATCH' })
+            if (res.ok) {
+                // Optimistically update UI
+                setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+            }
+        } catch (error) {
+            console.error("Failed to mark read")
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const unreadCount = notifications.filter(n => !n.isRead).length
+    const handleLogout = () => {
+        document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT"
+        window.location.href = "/login"
+    }
 
     return (
-        <header
-            className="sticky top-0 z-40 flex h-16 w-full items-center justify-between px-6 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
-        >
+        <div className="flex items-center justify-between p-4 md:px-8 bg-transparent">
+            {/* Title */}
             <div className="flex items-center gap-4">
-                <Sheet>
-                    <SheetTrigger asChild>
-                        <Button variant="ghost" size="icon" className="md:hidden">
-                            <Menu className="h-5 w-5" />
-                        </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="p-0 w-64">
-                        <Sidebar />
-                    </SheetContent>
-                </Sheet>
-                <div>
-                    <h1 className="text-lg font-semibold text-foreground">
-                        {title || "Admin"}
-                    </h1>
-                    <p className="text-xs text-muted-foreground hidden md:block">
-                        Project Management System
-                    </p>
-                </div>
+                {title && (
+                    <h2 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent animate-slide-down hidden md:block">
+                        {title}
+                    </h2>
+                )}
             </div>
 
+            {/* Right Side Actions */}
             <div className="flex items-center gap-4">
-                <div className="relative w-80 hidden md:block group" onClick={e => e.stopPropagation()}>
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors cursor-pointer" onClick={() => router.push(`/dashboard/admin/search?q=${encodeURIComponent(searchQuery)}`)} />
-                    <Input
-                        type="search"
-                        placeholder="Search anything..."
-                        className="pl-10 h-10 bg-muted/40 border-slate-200/50 dark:border-slate-800 focus:bg-background transition-all rounded-full"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={handleSearch}
-                        onFocus={() => { if (searchResults) setShowResults(true) }}
-                    />
 
-                    {/* Live Search Results Dropdown */}
-                    {showResults && searchResults && (
-                        <div className="absolute top-12 left-0 w-full bg-background border border-border rounded-lg shadow-lg z-50 overflow-hidden text-sm">
-                            {isSearching && <div className="p-2 text-center text-muted-foreground text-xs">Searching...</div>}
-
-                            {!isSearching && (
-                                <>
-                                    {searchResults.projects.length > 0 && (
-                                        <div className="p-2">
-                                            <div className="text-xs font-semibold text-muted-foreground mb-1 px-2">Projects</div>
-                                            {searchResults.projects.map(p => (
-                                                <div key={p.id} className="p-2 hover:bg-muted rounded cursor-pointer"
-                                                    onClick={() => { setShowResults(false); router.push(`/dashboard/admin/projects/${p.id}`) }}>
-                                                    <div className="font-medium text-foreground">{p.title}</div>
-                                                    <div className="text-xs text-muted-foreground">{p.status}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {searchResults.staff.length > 0 && (
-                                        <div className="p-2 border-t border-border">
-                                            <div className="text-xs font-semibold text-muted-foreground mb-1 px-2">Staff</div>
-                                            {searchResults.staff.map(s => (
-                                                <div key={s.id} className="p-2 hover:bg-muted rounded cursor-pointer"
-                                                    onClick={() => { setShowResults(false); setSearchQuery(s.fullName); }}>
-                                                    <div className="font-medium text-foreground">{s.fullName}</div>
-                                                    <div className="text-xs text-muted-foreground">{s.email}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {searchResults.students.length > 0 && (
-                                        <div className="p-2 border-t border-border">
-                                            <div className="text-xs font-semibold text-muted-foreground mb-1 px-2">Students</div>
-                                            {searchResults.students.map(s => (
-                                                <div key={s.id} className="p-2 hover:bg-muted rounded cursor-pointer"
-                                                    onClick={() => { setShowResults(false); setSearchQuery(s.fullName); }}>
-                                                    <div className="font-medium text-foreground">{s.fullName}</div>
-                                                    <div className="text-xs text-muted-foreground">{s.idNumber}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {searchResults.projects.length === 0 && searchResults.staff.length === 0 && searchResults.students.length === 0 && (
-                                        <div className="p-4 text-center text-muted-foreground">No results found.</div>
-                                    )}
-
-                                    <div className="p-2 border-t border-border bg-muted/20 text-center cursor-pointer hover:bg-muted text-xs text-blue-500"
-                                        onClick={() => { setShowResults(false); router.push(`/dashboard/admin/search?q=${encodeURIComponent(searchQuery)}`) }}>
-                                        View all results
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    )}
+                {/* Date Widget */}
+                <div className="hidden md:flex flex-col items-end mr-4 animate-fade-in">
+                    <span className="text-sm font-medium text-slate-200">
+                        {date?.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                    </span>
+                    <span className="text-xs text-slate-400">
+                        {date?.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 relative">
-                                <Bell className="h-5 w-5" />
-                                <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-background animate-pulse" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-80">
-                            <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <div className="max-h-[300px] overflow-y-auto">
-                                <DropdownMenuItem className="cursor-pointer flex flex-col items-start gap-1 p-3">
-                                    <div className="flex justify-between w-full font-medium text-sm">New Project Proposal <span className="text-xs text-muted-foreground">2m ago</span></div>
-                                    <p className="text-xs text-muted-foreground">"AI Attendance System" submitted for review.</p>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="cursor-pointer flex flex-col items-start gap-1 p-3">
-                                    <div className="flex justify-between w-full font-medium text-sm">System Update <span className="text-xs text-muted-foreground">1h ago</span></div>
-                                    <p className="text-xs text-muted-foreground">Maintenance scheduled for tonight at 2 AM.</p>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="cursor-pointer flex flex-col items-start gap-1 p-3">
-                                    <div className="flex justify-between w-full font-medium text-sm">Group Allocation <span className="text-xs text-muted-foreground">5h ago</span></div>
-                                    <p className="text-xs text-muted-foreground">Auto-allocation completed for Batch 2024.</p>
-                                </DropdownMenuItem>
-                            </div>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="justify-center text-blue-600 cursor-pointer">
-                                View all notifications
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800">
-                        <HelpCircle className="h-5 w-5" />
-                    </Button>
-                </div>
-
-                <div className="h-8 w-[1px] bg-border mx-2 hidden md:block"></div>
-
+                {/* Notifications */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                            <Avatar className="h-10 w-10 border-2 border-primary/10">
-                                <AvatarImage src="/avatars/01.png" alt="Admin" />
-                                <AvatarFallback>AD</AvatarFallback>
+                        <Button
+                            size="icon"
+                            variant="ghost"
+                            className="relative glass-modern hover-glow-cyan active-press h-10 w-10 rounded-xl"
+                        >
+                            <Bell className="h-5 w-5 text-slate-300" />
+                            {unreadCount > 0 && (
+                                <span className="absolute top-2 right-2 h-2.5 w-2.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
+                            )}
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-80 glass-modern border-cyan-500/20 backdrop-blur-2xl shadow-2xl p-0 mt-2 z-50">
+                        <DropdownMenuLabel className="p-4 border-b border-slate-700/50">
+                            <div className="flex justify-between items-center">
+                                <span className="font-bold text-slate-200">Notifications</span>
+                                {unreadCount > 0 && (
+                                    <Badge variant="secondary" className="bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30">
+                                        {unreadCount} New
+                                    </Badge>
+                                )}
+                            </div>
+                        </DropdownMenuLabel>
+                        <div className="max-h-[300px] overflow-y-auto p-2 space-y-2">
+                            {notifications.length === 0 ? (
+                                <div className="p-4 text-center text-slate-500 text-sm">
+                                    No notifications
+                                </div>
+                            ) : (
+                                notifications.map((n) => (
+                                    <div key={n.id} className={`flex gap-3 p-3 rounded-lg hover:bg-slate-800/50 transition-colors cursor-pointer group ${!n.isRead ? 'bg-slate-800/30' : ''}`}>
+                                        <div className={`h-2 w-2 mt-2 rounded-full shrink-0 ${n.isRead ? 'bg-slate-600' : 'bg-cyan-500'}`} />
+                                        <div className="space-y-1">
+                                            <p className={`text-sm font-medium transition-colors ${n.isRead ? 'text-slate-400' : 'text-slate-200 group-hover:text-cyan-400'}`}>
+                                                {n.title}
+                                            </p>
+                                            <p className="text-xs text-slate-400 line-clamp-2">
+                                                {n.message}
+                                            </p>
+                                            <p className="text-[10px] text-slate-500 mt-1">
+                                                {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                        {unreadCount > 0 && (
+                            <>
+                                <DropdownMenuSeparator className="bg-slate-700/50 m-0" />
+                                <div className="p-2 text-center">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={markAllAsRead}
+                                        disabled={loading}
+                                        className="text-xs text-cyan-400 hover:text-cyan-300 w-full"
+                                    >
+                                        {loading ? "Marking..." : "Mark all as read"}
+                                    </Button>
+                                </div>
+                            </>
+                        )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* User Menu */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="relative h-10 w-10 rounded-full hover-scale active-press p-0 overflow-hidden ring-2 ring-cyan-500/20 hover:ring-cyan-500/50 transition-all">
+                            <Avatar className="h-full w-full">
+                                <AvatarFallback className="bg-gradient-to-br from-cyan-600 to-blue-700 text-white font-bold text-sm">
+                                    AD
+                                </AvatarFallback>
                             </Avatar>
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56" align="end" forceMount>
-                        <DropdownMenuLabel className="font-normal">
+                    <DropdownMenuContent align="end" className="w-56 glass-modern border-cyan-500/20 backdrop-blur-2xl shadow-2xl mt-2 z-50">
+                        <DropdownMenuLabel className="font-normal p-3">
                             <div className="flex flex-col space-y-1">
-                                <p className="text-sm font-medium leading-none">System Admin</p>
-                                <p className="text-xs leading-none text-muted-foreground">
-                                    admin@spms.edu
-                                </p>
+                                <p className="text-sm font-medium leading-none text-white">Administrator</p>
+                                <p className="text-xs leading-none text-slate-400">admin@spms.edu</p>
                             </div>
                         </DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => router.push('/dashboard/admin/settings')}>
-                            Profile
+                        <DropdownMenuSeparator className="bg-slate-700/50" />
+                        <DropdownMenuItem className="hover:bg-cyan-500/10 focus:bg-cyan-500/10 cursor-pointer text-slate-300 focus:text-cyan-400">
+                            <User className="mr-2 h-4 w-4" />
+                            <span>Profile</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => router.push('/dashboard/admin/settings')}>
-                            Settings
+                        <DropdownMenuItem className="hover:bg-cyan-500/10 focus:bg-cyan-500/10 cursor-pointer text-slate-300 focus:text-cyan-400">
+                            <Settings className="mr-2 h-4 w-4" />
+                            <span>Settings</span>
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-500 font-medium cursor-pointer" onClick={() => window.location.href = '/api/logout'}>
-                            Log out
+                        <DropdownMenuSeparator className="bg-slate-700/50" />
+                        <DropdownMenuItem
+                            onClick={handleLogout}
+                            className="hover:bg-red-500/10 focus:bg-red-500/10 text-red-400 focus:text-red-400 cursor-pointer"
+                        >
+                            <LogOut className="mr-2 h-4 w-4" />
+                            <span>Logout</span>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
-        </header >
+        </div>
     )
+}
+
+function cn(...classes: any[]) {
+    return classes.filter(Boolean).join(' ')
 }

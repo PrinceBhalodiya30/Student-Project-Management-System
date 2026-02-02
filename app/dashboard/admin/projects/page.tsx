@@ -1,24 +1,39 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Search, Plus, Filter, SlidersHorizontal, Eye, Folder, CheckCircle2, Users, MoreHorizontal, ChevronDown, Trash2, X } from "lucide-react"
-
-import { useRouter } from "next/navigation"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import {
+    Search, Plus, Filter, Eye, Folder, CheckCircle2, Users,
+    MoreHorizontal, Trash2, X, Briefcase, Clock, GraduationCap
+} from "lucide-react"
+import { AdminTopBar } from "@/components/admin/admin-topbar"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function ProjectsDirectoryPage() {
-    const router = useRouter()
     const [projects, setProjects] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [stats, setStats] = useState({ total: 0, completed: 0, proposed: 0, activeStudents: 0 });
-    // Hardcoded group ID from seed for testing
-    const [newProject, setNewProject] = useState({ title: "", description: "", type: "MAJOR", groupName: "", department: "CS", members: [] });
-
+    const [newProject, setNewProject] = useState({
+        title: "",
+        description: "",
+        type: "MAJOR",
+        groupName: "",
+        department: "CS",
+        members: []
+    });
     const [students, setStudents] = useState<any[]>([])
+    const [searchTerm, setSearchTerm] = useState("");
+    const [filterType, setFilterType] = useState("ALL");
+    const [filterDept, setFilterDept] = useState("ALL");
+    const router = useRouter();
 
     useEffect(() => {
         fetchProjects();
@@ -33,7 +48,6 @@ export default function ProjectsDirectoryPage() {
                 const data = await res.json();
                 setProjects(data);
 
-                // Calculate Stats
                 let studentCount = 0;
                 data.forEach((p: any) => {
                     if (p.ProjectGroup?.StudentProfile) {
@@ -66,9 +80,9 @@ export default function ProjectsDirectoryPage() {
             if (res.ok) {
                 setIsCreateOpen(false);
                 setNewProject({ title: "", description: "", type: "MAJOR", groupName: "", department: "CS", members: [] });
-                fetchProjects(); // Refresh list
+                fetchProjects();
             } else {
-                alert("Failed to create project. Ensure Group ID exists.");
+                alert("Failed to create project.");
             }
         } catch (error) {
             console.error(error);
@@ -81,43 +95,11 @@ export default function ProjectsDirectoryPage() {
             const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
             if (res.ok) {
                 fetchProjects();
-            } else {
-                alert("Failed to delete");
             }
         } catch (error) {
             console.error(error);
         }
     }
-
-    // Search & Filter State
-    const [searchTerm, setSearchTerm] = useState("");
-    const [filterType, setFilterType] = useState("ALL");
-    const [filterDept, setFilterDept] = useState("ALL");
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 8;
-
-    // Derived Filtering Logic
-    const filteredProjects = projects.filter(project => {
-        const matchesSearch =
-            project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            project.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (project.ProjectGroup?.StudentProfile?.[0]?.User?.fullName || "").toLowerCase().includes(searchTerm.toLowerCase());
-
-        const matchesType = filterType === "ALL" || project.type === filterType;
-        const matchesDept = filterDept === "ALL" || (project.ProjectGroup?.StudentProfile?.[0]?.department || "CS") === filterDept; // Assuming dept comes from student or added to project
-
-        return matchesSearch && matchesType && matchesDept;
-    });
-
-    // Pagination Logic
-    const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
-    const paginatedProjects = filteredProjects.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-    // Reset page when filters change
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [searchTerm, filterType, filterDept]);
-
 
     const toggleMember = (id: string) => {
         const current = (newProject as any).members || []
@@ -128,261 +110,330 @@ export default function ProjectsDirectoryPage() {
         }
     }
 
+    const filteredProjects = projects.filter(project => {
+        const matchesSearch =
+            project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            project.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (project.ProjectGroup?.StudentProfile?.[0]?.User?.fullName || "").toLowerCase().includes(searchTerm.toLowerCase());
 
+        const matchesType = filterType === "ALL" || project.type === filterType;
+        const matchesDept = filterDept === "ALL" || (project.ProjectGroup?.StudentProfile?.[0]?.department || "CS") === filterDept;
+
+        return matchesSearch && matchesType && matchesDept;
+    });
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'COMPLETED': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+            case 'IN_PROGRESS': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+            case 'PROPOSED': return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+            default: return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+        }
+    }
 
     return (
-        <div className="flex flex-col h-full bg-[#0f172a] text-slate-100 p-6 font-sans relative">
-            {/* ... header ... */}
-            <div className="flex items-center justify-between mb-2">
-                <div>
-                    <h1 className="text-3xl font-bold text-white">All Projects Directory</h1>
-                    <p className="text-slate-400 mt-1">Manage and monitor academic projects across all departments for the current semester.</p>
-                </div>
-                <Button onClick={() => setIsCreateOpen(true)} className="bg-blue-600 hover:bg-blue-500 text-white">
-                    <Plus className="mr-2 h-4 w-4" /> Add New Project
-                </Button>
+        <div suppressHydrationWarning className="flex flex-col min-h-screen bg-background relative overflow-hidden">
+            {/* Gradient Background */}
+            <div className="fixed inset-0 gradient-mesh-modern opacity-20 pointer-events-none" />
+            <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-900/20 via-background to-background pointer-events-none" />
+
+            {/* TopBar */}
+            <div className="glass-modern border-b border-cyan-500/20 sticky top-0 z-30 relative">
+                <AdminTopBar title="Projects" />
             </div>
 
-            {/* Filter Bar */}
-            <div className="bg-[#1e293b] p-4 rounded-lg border border-slate-800 my-6 flex gap-4 flex-wrap">
-                <div className="relative flex-1 min-w-[300px]">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
-                    <Input
-                        className="bg-[#0f172a] border-slate-700 pl-10 text-slate-300"
-                        placeholder="Search by Project ID, Title, or Team Leader..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+            <main suppressHydrationWarning className="flex-1 p-6 md:p-8 space-y-6 max-w-[1600px] mx-auto w-full relative z-10">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div className="animate-slide-down">
+                        <h1 className="text-4xl font-bold tracking-tight text-cyan-400 animate-slide-down">
+                            All Projects
+                        </h1>
+                        <p className="text-muted-foreground mt-2">Manage and monitor academic projects across all departments</p>
+                    </div>
+                    <Button
+                        onClick={() => setIsCreateOpen(true)}
+                        className="bg-gradient-primary hover:opacity-90 shadow-lg shadow-cyan-500/30 hover-scale active-press animate-slide-left"
+                    >
+                        <Plus className="mr-2 h-4 w-4" /> Add New Project
+                    </Button>
                 </div>
 
-                <select
-                    className="bg-[#0f172a] border border-slate-700 text-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={filterType}
-                    onChange={(e) => setFilterType(e.target.value)}
-                >
-                    <option value="ALL">All Types</option>
-                    <option value="MAJOR">Major Project</option>
-                    <option value="MINI">Mini Project</option>
-                    <option value="RESEARCH">Research</option>
-                </select>
+                {/* Stats Cards */}
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                    <Card className="glass-modern border-cyan-500/20 hover-float stagger-item overflow-hidden relative group">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-500" />
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+                            <CardTitle className="text-sm font-semibold text-muted-foreground">Total Projects</CardTitle>
+                            <div className="p-2 rounded-lg bg-gradient-primary shadow-lg shadow-cyan-500/30 hover-scale">
+                                <Folder className="h-4 w-4 text-white" />
+                            </div>
+                        </CardHeader>
+                        <CardContent className="relative z-10">
+                            <div className="text-3xl font-bold text-cyan-400">
+                                {stats.total}
+                            </div>
+                        </CardContent>
+                    </Card>
 
-                <select
-                    className="bg-[#0f172a] border border-slate-700 text-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={filterDept}
-                    onChange={(e) => setFilterDept(e.target.value)}
-                >
-                    <option value="ALL">All Departments</option>
-                    <option value="CS">Computer Science</option>
-                    <option value="SE">Software Engineering</option>
-                    <option value="IT">Information Tech</option>
-                </select>
-            </div>
+                    <Card className="glass-modern border-emerald-500/20 hover-float stagger-item overflow-hidden relative group">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-500" />
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+                            <CardTitle className="text-sm font-semibold text-muted-foreground">Completed</CardTitle>
+                            <div className="p-2 rounded-lg bg-gradient-success shadow-lg shadow-emerald-500/30 hover-scale">
+                                <CheckCircle2 className="h-4 w-4 text-white" />
+                            </div>
+                        </CardHeader>
+                        <CardContent className="relative z-10">
+                            <div className="text-3xl font-bold text-emerald-400">
+                                {stats.completed}
+                            </div>
+                        </CardContent>
+                    </Card>
 
-            {/* Stats Cards Row */}
-            <div className="grid grid-cols-4 gap-4 mb-6">
-                <StatBox icon={<Folder className="text-blue-500" />} label="Total Projects" value={stats.total.toString()} />
-                <StatBox icon={<CheckCircle2 className="text-green-500" />} label="Completed" value={stats.completed.toString()} />
-                <StatBox icon={<MoreHorizontal className="text-amber-500" />} label="In Approval" value={stats.proposed.toString()} />
-                <StatBox icon={<Users className="text-indigo-500" />} label="Active Students" value={stats.activeStudents.toString()} />
-            </div>
+                    <Card className="glass-modern border-amber-500/20 hover-float stagger-item overflow-hidden relative group">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-500" />
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+                            <CardTitle className="text-sm font-semibold text-muted-foreground">In Approval</CardTitle>
+                            <div className="p-2 rounded-lg bg-gradient-warning shadow-lg shadow-amber-500/30 hover-scale">
+                                <Clock className="h-4 w-4 text-white" />
+                            </div>
+                        </CardHeader>
+                        <CardContent className="relative z-10">
+                            <div className="text-3xl font-bold text-amber-400">
+                                {stats.proposed}
+                            </div>
+                        </CardContent>
+                    </Card>
 
-            {/* Table */}
-            <div className="bg-[#1e293b] rounded-lg border border-slate-800 overflow-hidden flex-1 flex flex-col">
-                <div className="grid grid-cols-12 gap-4 px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-[#1e293b] border-b border-slate-700">
-                    <div className="col-span-2">Project ID</div>
-                    <div className="col-span-3">Project Title</div>
-                    <div className="col-span-2">Team Leader</div>
-                    <div className="col-span-2">Faculty Guide</div>
-                    <div className="col-span-1">Status</div>
-                    <div className="col-span-1">Progress</div>
-                    <div className="col-span-1 text-center">Actions</div>
+                    <Card className="glass-modern border-blue-500/20 hover-float overflow-hidden relative group">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-500" />
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+                            <CardTitle className="text-sm font-semibold text-muted-foreground">Active Students</CardTitle>
+                            <div className="p-2 rounded-lg bg-gradient-primary shadow-lg shadow-blue-500/30 hover-scale">
+                                <Users className="h-4 w-4 text-white" />
+                            </div>
+                        </CardHeader>
+                        <CardContent className="relative z-10">
+                            <div className="text-3xl font-bold text-blue-400">
+                                {stats.activeStudents}
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
 
-                <div className="flex-1 overflow-y-auto">
-                    {loading ? (
-                        <div className="p-8 text-center text-slate-400">Loading projects...</div>
-                    ) : filteredProjects.length === 0 ? (
-                        <div className="p-8 text-center text-slate-400">No projects found.</div>
-                    ) : (
-                        paginatedProjects.map((project) => (
-                            <ProjectRow
-                                key={project.id}
-                                id={project.id}
-                                title={project.title}
-                                subtitle={`${project.type || "General"} • ${project.status}`}
-                                leader={project.ProjectGroup?.StudentProfile?.[0]?.User?.fullName || "--"}
-                                guide={project.FacultyProfile?.User?.fullName || "Unassigned"}
-                                status={project.status}
-                                progress={project.progress || 0}
-                                progressColor={project.status === 'COMPLETED' ? "bg-green-500" : "bg-blue-500"}
-                                onDelete={() => handleDelete(project.id)}
-                                onView={() => router.push(`/dashboard/admin/projects/${project.id}`)}
+                {/* Filters */}
+                <Card className="glass-card border-violet-500/20">
+                    <CardContent className="p-4 flex gap-4 flex-wrap">
+                        <div className="relative flex-1 min-w-[300px]">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                className="pl-10 glass-card border-violet-500/20"
+                                placeholder="Search by Project ID, Title, or Team Leader..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
                             />
+                        </div>
+
+                        <Select value={filterType} onValueChange={setFilterType}>
+                            <SelectTrigger className="w-[180px] glass-card border-violet-500/20">
+                                <SelectValue placeholder="All Types" />
+                            </SelectTrigger>
+                            <SelectContent className="glass-card border-white/10">
+                                <SelectItem value="ALL">All Types</SelectItem>
+                                <SelectItem value="MAJOR">Major Project</SelectItem>
+                                <SelectItem value="MINI">Mini Project</SelectItem>
+                                <SelectItem value="RESEARCH">Research</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        <Select value={filterDept} onValueChange={setFilterDept}>
+                            <SelectTrigger className="w-[200px] glass-card border-violet-500/20">
+                                <SelectValue placeholder="All Departments" />
+                            </SelectTrigger>
+                            <SelectContent className="glass-card border-white/10">
+                                <SelectItem value="ALL">All Departments</SelectItem>
+                                <SelectItem value="CS">Computer Science</SelectItem>
+                                <SelectItem value="SE">Software Engineering</SelectItem>
+                                <SelectItem value="IT">Information Tech</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </CardContent>
+                </Card>
+
+                {/* Projects Grid */}
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {loading ? (
+                        Array.from({ length: 6 }).map((_, i) => (
+                            <Card key={i} className="glass-modern border-cyan-500/20">
+                                <CardHeader>
+                                    <div className="h-4 w-3/4 skeleton" />
+                                    <div className="h-3 w-1/2 skeleton mt-2" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="h-16 skeleton" />
+                                </CardContent>
+                            </Card>
+                        ))
+                    ) : filteredProjects.length === 0 ? (
+                        <div className="col-span-full text-center py-12 text-muted-foreground">
+                            No projects found
+                        </div>
+                    ) : (
+                        filteredProjects.map((project) => (
+                            <Card key={project.id} className="glass-modern border-cyan-500/20 hover-float group">
+                                <CardHeader>
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex-1">
+                                            <CardTitle className="text-lg group-hover:text-cyan-400 transition-colors">
+                                                {project.title}
+                                            </CardTitle>
+                                            <CardDescription className="text-xs mt-1">
+                                                {project.id}
+                                            </CardDescription>
+                                        </div>
+                                        <Badge className={`${getStatusColor(project.status)} border`}>
+                                            {project.status}
+                                        </Badge>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    <p className="text-sm text-muted-foreground line-clamp-2">
+                                        {project.description}
+                                    </p>
+
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <Users className="h-3 w-3" />
+                                        <span>{project.ProjectGroup?.StudentProfile?.[0]?.User?.fullName || "No Leader"}</span>
+                                    </div>
+
+                                    {project.FacultyProfile && (
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <GraduationCap className="h-3 w-3" />
+                                            <span>{project.FacultyProfile.User.fullName}</span>
+                                        </div>
+                                    )}
+
+                                    <div className="flex gap-2 pt-2">
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="flex-1 glass-modern border-cyan-500/20 hover:bg-cyan-500/10"
+                                            onClick={() => router.push(`/dashboard/admin/projects/${project.id}`)}
+                                        >
+                                            <Eye className="h-3 w-3 mr-1" /> View
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="glass-modern border-red-500/20 hover:bg-red-500/10 text-red-400"
+                                            onClick={() => handleDelete(project.id)}
+                                        >
+                                            <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
                         ))
                     )}
                 </div>
+            </main>
 
-                {/* Pagination Controls */}
-                <div className="p-4 border-t border-slate-800 flex items-center justify-between bg-[#1e293b]">
-                    <span className="text-xs text-slate-500">
-                        Showing {Math.min((currentPage - 1) * itemsPerPage + 1, filteredProjects.length)} to {Math.min(currentPage * itemsPerPage, filteredProjects.length)} of {filteredProjects.length} entries
-                    </span>
-                    <div className="flex gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 border-slate-700 text-slate-300 hover:bg-slate-800"
-                            onClick={() => setCurrentPage(c => Math.max(1, c - 1))}
-                            disabled={currentPage === 1}
-                        >
-                            Previous
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 border-slate-700 text-slate-300 hover:bg-slate-800"
-                            onClick={() => setCurrentPage(c => Math.min(totalPages, c + 1))}
-                            disabled={currentPage === totalPages || totalPages === 0}
-                        >
-                            Next
-                        </Button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Custom Modal Overlay */}
-            {isCreateOpen && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
-                    <div className="bg-[#1e293b] border border-slate-700 rounded-lg w-[600px] p-6 shadow-2xl animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold text-white">Create New Project</h2>
-                            <button onClick={() => setIsCreateOpen(false)} className="text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
+            {/* Create Project Dialog */}
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                <DialogContent className="glass-modern border-cyan-500/20 max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl text-cyan-400">
+                            Create New Project
+                        </DialogTitle>
+                        <DialogDescription>
+                            Add a new academic project to the system
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleCreate} className="space-y-4">
+                        <div>
+                            <Label>Project Title</Label>
+                            <Input
+                                className="glass-modern border-cyan-500/20 mt-1"
+                                value={newProject.title}
+                                onChange={(e) => setNewProject({ ...newProject, title: e.target.value })}
+                                required
+                            />
                         </div>
-                        <form onSubmit={handleCreate} className="space-y-4">
+
+                        <div>
+                            <Label>Description</Label>
+                            <Textarea
+                                className="glass-modern border-cyan-500/20 mt-1"
+                                value={newProject.description}
+                                onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
+                                rows={3}
+                                required
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-sm text-slate-400 block mb-1">Project Title</label>
-                                <Input required value={newProject.title} onChange={e => setNewProject({ ...newProject, title: e.target.value })} className="bg-[#0f172a] border-slate-700 text-white" />
+                                <Label>Project Type</Label>
+                                <Select value={newProject.type} onValueChange={(v) => setNewProject({ ...newProject, type: v })}>
+                                    <SelectTrigger className="glass-modern border-cyan-500/20 mt-1">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="glass-modern border-cyan-500/20">
+                                        <SelectItem value="MAJOR">Major Project</SelectItem>
+                                        <SelectItem value="MINI">Mini Project</SelectItem>
+                                        <SelectItem value="RESEARCH">Research</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
+
                             <div>
-                                <label className="text-sm text-slate-400 block mb-1">Description</label>
-                                <Input required value={newProject.description} onChange={e => setNewProject({ ...newProject, description: e.target.value })} className="bg-[#0f172a] border-slate-700 text-white" />
+                                <Label>Group Name</Label>
+                                <Input
+                                    className="glass-modern border-cyan-500/20 mt-1"
+                                    value={newProject.groupName}
+                                    onChange={(e) => setNewProject({ ...newProject, groupName: e.target.value })}
+                                    placeholder="Optional"
+                                />
                             </div>
-                            <div>
-                                <label className="text-sm text-slate-400 block mb-1">Group Name (Team Name)</label>
-                                <Input placeholder="e.g. Team Alpha" value={newProject.groupName} onChange={e => setNewProject({ ...newProject, groupName: e.target.value })} className="bg-[#0f172a] border-slate-700 text-white" />
+                        </div>
+
+                        <div>
+                            <Label>Select Team Members</Label>
+                            <div className="mt-2 max-h-48 overflow-y-auto space-y-2 glass-modern border-cyan-500/20 p-3 rounded-lg">
+                                {students.map((student) => (
+                                    <label key={student.id} className="flex items-center gap-2 cursor-pointer hover:bg-cyan-500/10 p-2 rounded transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            checked={(newProject.members as any).includes(student.id)}
+                                            onChange={() => toggleMember(student.id)}
+                                            className="rounded border-cyan-500/20"
+                                        />
+                                        <span className="text-sm">{student.name} - {student.department}</span>
+                                    </label>
+                                ))}
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-sm text-slate-400 block mb-1">Type</label>
-                                    <select
-                                        className="w-full bg-[#0f172a] border border-slate-700 text-slate-300 rounded-md h-10 px-3 text-sm"
-                                        value={newProject.type}
-                                        onChange={e => setNewProject({ ...newProject, type: e.target.value })}
-                                    >
-                                        <option value="MAJOR">Major Project</option>
-                                        <option value="MINI">Mini Project</option>
-                                        <option value="RESEARCH">Research</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="text-sm text-slate-400 block mb-1">Department</label>
-                                    <select
-                                        className="w-full bg-[#0f172a] border border-slate-700 text-slate-300 rounded-md h-10 px-3 text-sm"
-                                        value={newProject.department}
-                                        onChange={e => setNewProject({ ...newProject, department: e.target.value })}
-                                    >
-                                        <option value="CS">Computer Science</option>
-                                        <option value="SE">Software Engineering</option>
-                                        <option value="IT">Info Tech</option>
-                                    </select>
-                                </div>
-                            </div>
+                        </div>
 
-                            {/* Student Selection */}
-                            <div className="border border-slate-700 rounded-md p-3">
-                                <label className="text-sm text-slate-400 block mb-2">Select Team Members</label>
-                                <div className="max-h-40 overflow-y-auto space-y-1 pr-2">
-                                    {students.map(student => {
-                                        const assignedGroup = student.groupId
-                                            ? projects.find(p => p.ProjectGroup?.id === student.groupId)?.ProjectGroup
-                                            : null;
-
-                                        return (
-                                            <div key={student.id} className="flex items-center gap-2 p-1 hover:bg-slate-800 rounded">
-                                                <input
-                                                    type="checkbox"
-                                                    className="rounded border-slate-700 bg-slate-900"
-                                                    checked={((newProject as any).members || []).includes(student.id)}
-                                                    onChange={() => toggleMember(student.id)}
-                                                />
-                                                <span className="text-sm text-slate-300">{student.name} ({student.idNumber})</span>
-                                                {assignedGroup && <span className="text-xs text-amber-500 ml-auto italic">In: {assignedGroup.name}</span>}
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-                            </div>
-
-                            <div className="pt-4 flex justify-end gap-3">
-                                <Button type="button" variant="ghost" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-                                <Button type="submit" className="bg-blue-600 hover:bg-blue-500">Create Project</Button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-        </div>
-    )
-}
-
-
-
-function StatBox({ icon, label, value }: any) {
-    return (
-        <div className="bg-[#1e293b] p-4 rounded-lg border border-slate-800 flex items-center gap-4">
-            <div className="h-10 w-10 rounded-full bg-[#0f172a] flex items-center justify-center">
-                {icon}
-            </div>
-            <div>
-                <div className="text-2xl font-bold text-white">{value}</div>
-                <div className="text-[10px] uppercase font-bold text-slate-500">{label}</div>
-            </div>
-        </div>
-    )
-}
-
-function ProjectRow({ id, title, subtitle, leader, guide, status, progress, progressColor, onDelete, onView }: any) {
-    let badgeClass = "bg-blue-500/10 text-blue-500"
-    if (status === 'COMPLETED') badgeClass = "bg-green-500/10 text-green-500"
-    if (status === 'PROPOSED') badgeClass = "bg-amber-500/10 text-amber-500"
-    if (status === 'On Hold') badgeClass = "bg-slate-500/10 text-slate-500"
-
-    return (
-        <div className="grid grid-cols-12 gap-4 px-6 py-4 items-center border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
-            <div className="col-span-2 text-xs text-slate-400 font-mono">{id}</div>
-            <div className="col-span-3">
-                <div className="text-sm font-semibold text-white">{title}</div>
-                <div className="text-[10px] text-slate-500">{subtitle}</div>
-            </div>
-            <div className="col-span-2 text-sm text-slate-300">{leader}</div>
-            <div className="col-span-2 text-sm text-slate-300">{guide}</div>
-            <div className="col-span-1">
-                <Badge variant="secondary" className={`border-none ${badgeClass} text-[10px]`}>{status}</Badge>
-            </div>
-            <div className="col-span-1 flex items-center gap-2">
-                <div className="h-1.5 flex-1 bg-slate-700 rounded-full overflow-hidden">
-                    <div className={`h-full ${progressColor}`} style={{ width: `${progress}%` }}></div>
-                </div>
-                <span className="text-[10px] text-slate-400">{progress}%</span>
-            </div>
-            <div className="col-span-1 text-center flex justify-center gap-2">
-                <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-white" onClick={onView}>
-                    <Eye className="h-4 w-4" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-red-400" onClick={onDelete}>
-                    <Trash2 className="h-4 w-4" />
-                </Button>
-            </div>
+                        <div className="flex gap-3 pt-4">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsCreateOpen(false)}
+                                className="flex-1 glass-modern border-cyan-500/20"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                className="flex-1 bg-gradient-primary hover:opacity-90 shadow-lg shadow-cyan-500/30"
+                            >
+                                Create Project
+                            </Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

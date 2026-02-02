@@ -236,6 +236,19 @@ export function StaffTab() {
                             onChange={e => setFormData({ ...formData, email: e.target.value })}
                         />
                     </div>
+                    <div>
+                        <label className="text-sm font-medium text-slate-300">
+                            {isEditing ? "Password (leave blank to keep current)" : "Password"}
+                        </label>
+                        <Input
+                            type="password"
+                            required={!isEditing}
+                            className="bg-slate-800 border-slate-700 mt-1"
+                            placeholder={isEditing ? "••••••••" : "Enter password"}
+                            value={formData.password || ''}
+                            onChange={e => setFormData({ ...formData, password: e.target.value })}
+                        />
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="text-sm font-medium text-slate-300">Department</label>

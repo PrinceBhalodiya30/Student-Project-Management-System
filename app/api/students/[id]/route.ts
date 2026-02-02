@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { hashPassword } from "@/lib/auth";
 
 export const dynamic = 'force-dynamic';
 
@@ -7,29 +8,33 @@ export const dynamic = 'force-dynamic';
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await params;
-        // Based on other routes, let's assume we pass User ID or StudentProfile ID. 
-        // Best practice: Pass User ID for consistency if possible, or Profile ID.
-        // Let's look at `staff` implementation: it expects User ID.
-        // Let's stick to User ID for consistency.
 
         const body = await request.json();
-        const { name, email, idNumber, department, batch, isActive, isLeader } = body;
+        const { name, email, idNumber, department, batch, isActive, isLeader, password } = body;
+
+        // Prepare update data
+        const updateData: any = {
+            fullName: name,
+            email,
+            isActive: isActive !== undefined ? isActive : undefined,
+            StudentProfile: {
+                update: {
+                    idNumber,
+                    department,
+                    batch,
+                    isLeader: isLeader !== undefined ? isLeader : undefined
+                }
+            }
+        };
+
+        // If password is provided (limit to non-empty strings), hash and update it
+        if (password && password.trim() !== "") {
+            updateData.password = await hashPassword(password);
+        }
 
         const updatedUser = await prisma.user.update({
             where: { id },
-            data: {
-                fullName: name,
-                email,
-                isActive: isActive !== undefined ? isActive : undefined,
-                StudentProfile: {
-                    update: {
-                        idNumber,
-                        department,
-                        batch,
-                        isLeader: isLeader !== undefined ? isLeader : undefined
-                    }
-                }
-            },
+            data: updateData,
             include: { StudentProfile: true }
         });
 

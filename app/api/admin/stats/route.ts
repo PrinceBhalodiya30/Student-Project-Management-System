@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+// Disable caching for this route
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
     try {
         // 1. Fetch Key Metrics
@@ -122,12 +126,16 @@ export async function GET() {
         ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 5);
 
 
+        // Calculate active faculty (faculty with at least one active project)
+        const activeFacultyCount = faculty.filter(f => f.Project.length > 0).length;
+
         return NextResponse.json({
             stats: {
-                activeProjects: activeProjectsCount,
+                totalProjects: totalProjectsCount,
                 activeStudents: totalStudentsCount,
-                facultyAdvisors: totalFacultyCount,
-                completionRate: `${completionRate}%`,
+                totalFaculty: totalFacultyCount,
+                activeFaculty: activeFacultyCount,
+                completionRate: parseFloat(completionRate),
                 csCount: 45,
                 itCount: 32,
                 unassignedProjects: unassignedProjectsCount,
