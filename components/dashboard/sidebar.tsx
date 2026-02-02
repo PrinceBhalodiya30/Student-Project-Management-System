@@ -12,13 +12,20 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
-const navItems = [
+const adminNavItems = [
     { href: "/dashboard/admin", label: "Dashboard", icon: LayoutDashboard },
     { href: "/dashboard/admin/projects", label: "Projects", icon: FolderKanban },
     { href: "/dashboard/admin/allocations", label: "Allocations", icon: Users },
     { href: "/dashboard/admin/reports", label: "Reports", icon: FileText },
     { href: "/dashboard/admin/settings", label: "Settings", icon: Settings },
     { href: "/dashboard/admin/master-data", label: "Master Data", icon: Database },
+]
+
+const facultyNavItems = [
+    { href: "/dashboard/faculty", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/dashboard/faculty/projects", label: "My Projects", icon: FolderKanban },
+    { href: "/dashboard/faculty/schedule", label: "Schedule", icon: Users }, // Using Users icon as placeholder or Calendar if available
+    { href: "/dashboard/faculty/evaluations", label: "Evaluations", icon: FileText },
 ]
 
 export function Sidebar() {
@@ -82,6 +89,9 @@ function SidebarContent({
     onToggleCollapse?: () => void
     isMobile?: boolean
 }) {
+    const isFaculty = pathname.startsWith("/dashboard/faculty")
+    const navItems = isFaculty ? facultyNavItems : adminNavItems
+
     return (
         <div className="flex flex-col h-full p-4">
             {/* Logo Section */}
@@ -104,6 +114,7 @@ function SidebarContent({
                     </div>
                 )}
             </div>
+
 
             {/* Navigation */}
             <nav className="flex-1 space-y-2">

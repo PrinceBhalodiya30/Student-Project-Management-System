@@ -244,10 +244,15 @@ export function StaffTab() {
                             type="password"
                             required={!isEditing}
                             className="bg-slate-800 border-slate-700 mt-1"
-                            placeholder={isEditing ? "••••••••" : "Enter password"}
+                            placeholder={isEditing ? "•••••••• (Unchanged)" : "Enter password"}
                             value={formData.password || ''}
                             onChange={e => setFormData({ ...formData, password: e.target.value })}
                         />
+                        {isEditing && (
+                            <p className="text-xs text-slate-500 mt-1">
+                                Leave blank to keep the current password.
+                            </p>
+                        )}
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>

@@ -165,15 +165,7 @@ export default function LoginPage() {
                             </Button>
                         </form>
 
-                        <div className="mt-8 text-center text-xs text-slate-400">
-                            Don&apos;t have an account?{" "}
-                            <Link
-                                href="/register"
-                                className="text-cyan-400 hover:text-cyan-300 font-medium hover:underline transition-all"
-                            >
-                                Contact Department
-                            </Link>
-                        </div>
+                        
                     </CardContent>
                 </Card>
 

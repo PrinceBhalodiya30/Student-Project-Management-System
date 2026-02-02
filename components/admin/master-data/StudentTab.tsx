@@ -216,14 +216,21 @@ export function StudentTab() {
                         <Input placeholder="Email" type="email" className="bg-slate-800 border-slate-700"
                             value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} required />
 
-                        <Input
-                            placeholder={isEditing ? "Password (leave blank to keep current)" : "Password"}
-                            type="password"
-                            className="bg-slate-800 border-slate-700"
-                            required={!isEditing}
-                            value={formData.password || ''}
-                            onChange={e => setFormData({ ...formData, password: e.target.value })}
-                        />
+                        <div>
+                            <Input
+                                placeholder={isEditing ? "•••••••• (Unchanged)" : "Password"}
+                                type="password"
+                                className="bg-slate-800 border-slate-700"
+                                required={!isEditing}
+                                value={formData.password || ''}
+                                onChange={e => setFormData({ ...formData, password: e.target.value })}
+                            />
+                            {isEditing && (
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Leave blank to keep the current password.
+                                </p>
+                            )}
+                        </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <Input placeholder="ID Number" className="bg-slate-800 border-slate-700"

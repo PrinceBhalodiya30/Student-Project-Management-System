@@ -1,275 +1,225 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { AdminTopBar } from "@/components/admin/admin-topbar"
+import { AnimatedCounter } from "@/components/ui/animated-counter"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Bell, Search, Settings, MoreVertical, Calendar, Clock, Filter, ListFilter, AlertCircle, Folder, MapPin } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import {
+    Calendar, Folder, AlertCircle, Clock,
+    Sparkles, Layers, ListTodo
+} from "lucide-react"
 
 export default function FacultyDashboard() {
+    const router = useRouter();
+    const [stats, setStats] = useState<any>(null);
+    const [projects, setProjects] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                // Fetch Stats
+                const resStats = await fetch('/api/faculty/stats');
+                if (resStats.ok) {
+                    const data = await resStats.json();
+                    setStats(data.stats);
+                }
+
+                // Fetch Projects
+                const resProjects = await fetch('/api/faculty/projects');
+                if (resProjects.ok) {
+                    const data = await resProjects.json();
+                    setProjects(data);
+                }
+
+            } catch (error) {
+                console.error("Failed to fetch faculty data", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
+
     return (
-        <div className="flex flex-col h-full bg-[#0f172a] text-slate-100 font-sans">
-            {/* Top Bar for Faculty */}
-            <header className="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-[#0f172a]">
-                <div className="relative w-96">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
-                    <input
-                        className="w-full bg-[#1e293b] border-none rounded-lg py-2 pl-10 pr-4 text-sm text-slate-300 placeholder:text-slate-500 focus:ring-1 focus:ring-blue-500"
-                        placeholder="Search projects or students..."
+        <div className="flex flex-col min-h-screen bg-background relative overflow-hidden">
+            {/* Animated Background */}
+            <div className="fixed inset-0 gradient-mesh-modern opacity-20 pointer-events-none" />
+            <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-900/20 via-background to-background pointer-events-none" />
+
+            {/* Floating Particles */}
+            <div className="particles">
+                <div className="particle" style={{ width: '100px', height: '100px', top: '10%', left: '10%', animationDelay: '0s' }} />
+                <div className="particle" style={{ width: '150px', height: '150px', top: '60%', right: '10%', animationDelay: '2s' }} />
+            </div>
+
+            {/* TopBar */}
+            <div className="glass-modern border-b border-cyan-500/20 sticky top-0 z-30 relative">
+                <AdminTopBar title="My Dashboard" />
+            </div>
+
+            <main className="flex-1 p-6 md:p-8 space-y-8 max-w-[1600px] mx-auto w-full relative z-10">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-slide-down">
+                    <div>
+                        <h1 className="text-4xl md:text-5xl font-bold tracking-tight gradient-primary bg-clip-text text-transparent flex items-center gap-3">
+                            <Sparkles className="h-8 w-8 text-cyan-400 animate-pulse-slow" />
+                            Faculty Overview
+                        </h1>
+                        <p className="text-muted-foreground mt-2">Manage your projects and student progress.</p>
+                    </div>
+                </div>
+
+                {/* Metrics Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-slide-up">
+                    <MetricCard
+                        title="Active Projects"
+                        value={stats?.activeProjects || 0}
+                        icon={<Folder className="h-5 w-5 text-blue-400" />}
+                        gradient="bg-gradient-to-br from-blue-500 to-indigo-600"
+                    />
+                    <MetricCard
+                        title="Meetings Today"
+                        value={stats?.meetingsToday || 0}
+                        icon={<Calendar className="h-5 w-5 text-amber-400" />}
+                        gradient="bg-gradient-to-br from-amber-500 to-orange-600"
+                    />
+                    <MetricCard
+                        title="Pending Reviews"
+                        value={stats?.pendingReviews || 0}
+                        icon={<ListTodo className="h-5 w-5 text-emerald-400" />}
+                        gradient="bg-gradient-to-br from-emerald-500 to-teal-600"
                     />
                 </div>
-                <div className="flex items-center gap-4">
-                    <Button size="icon" variant="ghost" className="text-slate-400 hover:text-white">
-                        <Bell className="h-5 w-5" />
-                    </Button>
-                    <Button size="icon" variant="ghost" className="text-slate-400 hover:text-white">
-                        <Settings className="h-5 w-5" />
-                    </Button>
-                    <div className="flex items-center gap-3 pl-4 border-l border-slate-700">
-                        <div className="text-right hidden md:block">
-                            <div className="text-sm font-semibold text-white">Dr. Sarah Smith</div>
-                            <div className="text-xs text-slate-400">Senior Professor</div>
+
+                {/* Content Split */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+                    {/* Assigned Projects */}
+                    <div className="lg:col-span-2 space-y-6 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-foreground">Assigned Projects</h2>
+                            <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/faculty/projects')}>View All</Button>
                         </div>
-                        <Avatar>
-                            <AvatarImage src="/avatars/02.png" />
-                            <AvatarFallback>SS</AvatarFallback>
-                        </Avatar>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {projects.length === 0 ? (
+                                <div className="col-span-2 p-8 text-center glass-modern rounded-xl border-dashed border-2 border-slate-700">
+                                    <p className="text-muted-foreground">No projects assigned yet.</p>
+                                </div>
+                            ) : (
+                                projects.slice(0, 4).map((project, i) => (
+                                    <ProjectCard key={project.id} project={project} index={i} />
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Right Sidebar */}
+                    <div className="space-y-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+                        <Card className="glass-modern border-cyan-500/20">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-sm">
+                                    <Clock className="h-4 w-4 text-cyan-400" />
+                                    Upcoming Schedule
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {stats?.meetingsToday > 0 ? (
+                                    <div className="space-y-4">
+                                        {/* Mock Data - In real app fetch meetings */}
+                                        <div className="p-3 bg-white/5 rounded-lg border-l-2 border-amber-500">
+                                            <p className="text-sm font-semibold">Project Review</p>
+                                            <p className="text-xs text-muted-foreground">Today, 2:00 PM</p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">No meetings scheduled for today.</p>
+                                )}
+                                <Button className="w-full mt-4" variant="ghost" size="sm">View Calendar</Button>
+                            </CardContent>
+                        </Card>
                     </div>
                 </div>
-            </header>
-
-            <div className="flex flex-1 overflow-hidden">
-                {/* Main Content */}
-                <main className="flex-1 overflow-y-auto p-8">
-
-                    {/* Key Metrics */}
-                    <div className="grid grid-cols-3 gap-6 mb-8">
-                        <MetricCard
-                            title="Active Projects"
-                            value="12"
-                            subtext="+2 this month"
-                            subtextColor="text-green-500"
-                            icon={<Folder className="h-5 w-5 text-blue-500" />}
-                        />
-                        <MetricCard
-                            title="Meetings Today"
-                            value="4"
-                            subtext="Next: 2:00 PM"
-                            subtextColor="text-slate-400"
-                            icon={<Calendar className="h-5 w-5 text-amber-500" />}
-                        />
-                        <MetricCard
-                            title="Pending Reviews"
-                            value="7"
-                            subtext="3 overdue"
-                            subtextColor="text-red-500"
-                            icon={<AlertCircle className="h-5 w-5 text-red-500" />}
-                        />
-                    </div>
-
-                    {/* Assigned Projects Header */}
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-bold text-white">Assigned Projects</h2>
-                        <div className="flex gap-2">
-                            <Button variant="outline" size="sm" className="bg-[#1e293b] border-slate-700 text-slate-300 gap-2">
-                                <Filter className="h-3 w-3" /> Filter
-                            </Button>
-                            <Button variant="outline" size="sm" className="bg-[#1e293b] border-slate-700 text-slate-300 gap-2">
-                                <ListFilter className="h-3 w-3" /> Sort
-                            </Button>
-                        </div>
-                    </div>
-
-                    {/* Projects Grid */}
-                    <div className="grid grid-cols-2 gap-6">
-                        <ProjectCard
-                            tag="PHASE 3: IMPLEMENTATION"
-                            tagColor="bg-blue-600/20 text-blue-400"
-                            title="AI-Driven Logistics Optimization"
-                            students="Lead Students: Alice Wang, Bob Richards"
-                            progress={85}
-                            nextMeeting="2H 15M"
-                            avatars={["AW", "BR"]}
-                        />
-                        <ProjectCard
-                            tag="PHASE 1: PROPOSAL"
-                            tagColor="bg-amber-600/20 text-amber-500"
-                            title="Blockchain in Supply Chain"
-                            students="Lead Students: Charlie Davis, Eva Lopez"
-                            progress={32}
-                            nextMeeting="TOMORROW"
-                            avatars={["CD", "EL"]}
-                        />
-                        <ProjectCard
-                            tag="FINAL REVIEW"
-                            tagColor="bg-green-600/20 text-green-500"
-                            title="Smart City Infrastructure"
-                            students="Lead Students: Grace Kim, Henry O."
-                            progress={98}
-                            status="PRESENTATION READY"
-                            statusColor="text-green-500"
-                            avatars={["GK", "HO"]}
-                        />
-                        <ProjectCard
-                            tag="PHASE 2: RESEARCH"
-                            tagColor="bg-slate-600/20 text-slate-400"
-                            title="Cybersecurity Frameworks"
-                            students="Lead Students: Frank Miller"
-                            progress={64}
-                            nextMeeting="3 DAYS"
-                            avatars={["FM"]}
-                        />
-                    </div>
-                </main>
-
-                {/* Right Sidebar - Upcoming Meetings */}
-                <aside className="w-80 bg-[#1e293b] border-l border-slate-800 p-6 overflow-y-auto">
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="font-semibold text-white">Upcoming Meetings</h3>
-                        <Calendar className="h-4 w-4 text-slate-400" />
-                    </div>
-
-                    <div className="space-y-6">
-                        {/* Today */}
-                        <div>
-                            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Today - Oct 24</div>
-                            <MeetingItem
-                                title="Thesis Review (Group A)"
-                                time="2:00 PM - 3:00 PM"
-                                active={true}
-                            />
-                            <MeetingItem
-                                title="Logistics Optimization Sync"
-                                time="4:30 PM - 5:00 PM"
-                            />
-                        </div>
-
-                        {/* Tomorrow */}
-                        <div>
-                            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Tomorrow - Oct 25</div>
-                            <MeetingItem
-                                title="Initial Pitch (Group D)"
-                                time="10:00 AM - 11:30 AM"
-                                location="Room 402B"
-                                highlightColor="border-amber-500"
-                            />
-                        </div>
-
-                        {/* Wed */}
-                        <div>
-                            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Wed - Oct 26</div>
-                            <MeetingItem
-                                title="Final Demo Prep"
-                                time="01:00 PM - 02:00 PM"
-                                highlightColor="border-green-500"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Office Hours Card */}
-                    <div className="mt-8 p-4 bg-[#0f172a] rounded-xl border border-slate-800">
-                        <h4 className="text-sm font-semibold text-white mb-1">Office Hours</h4>
-                        <p className="text-xs text-slate-400 mb-3">You have 3 open slots for student consultations this week.</p>
-                        <Button variant="outline" className="w-full border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 text-xs">
-                            Manage Slots
-                        </Button>
-                    </div>
-                </aside>
-            </div>
+            </main>
         </div>
     )
 }
 
-function MetricCard({ title, value, subtext, subtextColor, icon }: any) {
+function MetricCard({ title, value, icon, gradient }: any) {
     return (
-        <Card className="bg-[#1e293b] border-slate-800">
-            <CardContent className="p-6">
-                <div className="flex justify-between items-start mb-2">
-                    <span className="text-slate-400 text-sm font-medium">{title}</span>
+        <Card className="glass-modern border-cyan-500/20 hover-float relative overflow-hidden group">
+            <div className={`absolute top-0 right-0 w-24 h-24 opacity-10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500 ${gradient}`} />
+            <CardContent className="p-6 relative z-10 flex items-center justify-between">
+                <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
+                    <div className="text-3xl font-bold text-foreground">
+                        <AnimatedCounter to={value} />
+                    </div>
+                </div>
+                <div className={`p-3 rounded-xl shadow-lg ${gradient}`}>
                     {icon}
                 </div>
-                <div className="text-3xl font-bold text-white mb-1">{value}</div>
-                <div className={`text-xs font-medium ${subtextColor} flex items-center gap-1`}>
-                    {subtext.includes("overdue") && <AlertCircle className="h-3 w-3" />}
-                    {subtext.includes("this month") && <span className="text-lg leading-3">↗</span>}
-                    {subtext}
-                </div>
             </CardContent>
         </Card>
     )
 }
 
-function ProjectCard({ tag, tagColor, title, students, progress, nextMeeting, status, statusColor, avatars }: any) {
+function ProjectCard({ project, index }: any) {
+    // Determine status color
+    const statusColors: any = {
+        PROPOSED: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+        APPROVED: "text-blue-400 bg-blue-500/10 border-blue-500/20",
+        IN_PROGRESS: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
+        COMPLETED: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+        REJECTED: "text-red-400 bg-red-500/10 border-red-500/20",
+    };
+    const colorClass = statusColors[project.status] || "text-slate-400 bg-slate-500/10 border-slate-500/20";
+
     return (
-        <Card className="bg-[#1e293b] border-slate-800 hover:bg-slate-800/50 transition-colors cursor-pointer group">
-            <CardContent className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                    <Badge variant="secondary" className={`${tagColor} text-[10px] uppercase font-bold border-none`}>{tag}</Badge>
-                    <MoreVertical className="h-4 w-4 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <Card className="glass-modern border-slate-800 hover:border-cyan-500/30 transition-all duration-300 hover-scale group cursor-pointer h-full">
+            <CardContent className="p-5 flex flex-col h-full">
+                <div className="flex justify-between items-start mb-3">
+                    <Badge variant="outline" className={`text-[10px] uppercase font-bold ${colorClass}`}>
+                        {project.status.replace('_', ' ')}
+                    </Badge>
+                    {project.Type && <span className="text-[10px] text-muted-foreground border px-1.5 py-0.5 rounded border-slate-800">{project.Type.name}</span>}
                 </div>
 
-                <h3 className="text-lg font-bold text-white mb-1 group-hover:text-blue-400 transition-colors">{title}</h3>
-                <p className="text-xs text-slate-400 mb-6">{students}</p>
+                <h3 className="font-bold text-lg text-foreground mb-2 group-hover:text-cyan-400 transition-colors line-clamp-2">
+                    {project.title}
+                </h3>
 
-                <div className="space-y-2 mb-6">
-                    <div className="flex justify-between text-xs text-slate-400">
-                        <span className="uppercase tracking-wider font-semibold">Progress</span>
-                        <span className="font-bold text-blue-400">{progress}%</span>
-                    </div>
-                    <Progress value={progress} className="h-1.5 bg-slate-700" />
-                </div>
+                <p className="text-xs text-muted-foreground mb-4 line-clamp-2 flex-1">
+                    {project.description}
+                </p>
 
-                <div className="flex items-center justify-between pt-4 border-t border-slate-800/50">
-                    <div className="flex items-center gap-2 text-xs text-slate-400">
-                        {status ? (
-                            <div className={`flex items-center gap-1.5 font-bold ${statusColor}`}>
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                {status}
-                            </div>
-                        ) : (
-                            <>
-                                <Calendar className="h-3.5 w-3.5" />
-                                <span className="uppercase text-[10px] font-semibold tracking-wider text-slate-500">Next Meeting:</span>
-                                <span className="font-medium text-white">{nextMeeting}</span>
-                            </>
-                        )}
-                    </div>
+                <div className="mt-auto pt-3 border-t border-white/5 flex items-center justify-between">
                     <div className="flex -space-x-2">
-                        {avatars.map((av: string, i: number) => (
-                            <Avatar key={i} className="h-6 w-6 border-2 border-[#1e293b]">
-                                <AvatarFallback className="text-[9px] bg-slate-600 text-white">{av}</AvatarFallback>
+                        {project.ProjectGroup?.StudentProfile?.slice(0, 3).map((student: any) => (
+                            <Avatar key={student.id} className="h-6 w-6 border-2 border-background">
+                                <AvatarFallback className="text-[8px] bg-slate-800 text-slate-300">
+                                    {student.User?.fullName?.substring(0, 2).toUpperCase() || "ST"}
+                                </AvatarFallback>
                             </Avatar>
                         ))}
+                        {(project.ProjectGroup?.StudentProfile?.length || 0) > 3 && (
+                            <div className="h-6 w-6 rounded-full bg-slate-800 border-2 border-background flex items-center justify-center text-[8px] text-slate-400">
+                                +{project.ProjectGroup.StudentProfile.length - 3}
+                            </div>
+                        )}
                     </div>
+                    <span className="text-[10px] text-slate-500">
+                        {new Date(project.updatedAt).toLocaleDateString()}
+                    </span>
                 </div>
             </CardContent>
         </Card>
     )
-}
-
-function MeetingItem({ title, time, active, location, highlightColor = "border-blue-500" }: any) {
-    return (
-        <div className={`pl-3 border-l-2 ${active ? "border-blue-500" : highlightColor === "border-blue-500" ? "border-slate-700" : highlightColor} mb-4 relative`}>
-            {active && <div className="absolute -left-[5px] top-0 h-full w-[2px] bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>}
-            <h4 className={`text-sm font-medium ${active ? "text-white" : "text-slate-300"}`}>{title}</h4>
-            <p className="text-xs text-slate-500 mt-0.5">{time}</p>
-            {active && (
-                <div className="mt-2 flex gap-2">
-                    <Button size="sm" className="h-6 text-[10px] bg-blue-600 hover:bg-blue-500">Join Call</Button>
-                    <Button size="sm" variant="outline" className="h-6 text-[10px] border-slate-600 text-slate-400">Details</Button>
-                </div>
-            )}
-            {location && (
-                <div className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-800 text-[10px] text-slate-400">
-                    <MapPin className="h-3 w-3" /> {location}
-                </div>
-            )}
-        </div>
-    )
-}
-
-// Missing icon import hack
-function CheckCircle2(props: any) {
-    return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></svg>
 }
