@@ -34,12 +34,30 @@ export async function GET() {
 export async function POST(req: Request) {
     try {
         const body = await req.json();
+        if (!body.name || !body.email || !body.idNumber || !body.department || !body.batch) {
+            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+        }
+
         const hashedPassword = await hashPassword(body.password || "password123");
 
+        // Check for existing user or student profile
+        const existingUser = await prisma.user.findUnique({ where: { email: body.email } });
+        if (existingUser) {
+            return NextResponse.json({ error: "Email already exists" }, { status: 409 });
+        }
+
+        const existingStudent = await prisma.studentProfile.findUnique({ where: { idNumber: body.idNumber } });
+        if (existingStudent) {
+            return NextResponse.json({ error: "ID Number already exists" }, { status: 409 });
+        }
+
         // Create User AND StudentProfile
+        const userId = randomUUID();
+        const studentProfileId = randomUUID();
+
         const newUser = await prisma.user.create({
             data: {
-                id: randomUUID(),
+                id: userId,
                 fullName: body.name,
                 email: body.email,
                 password: hashedPassword,
@@ -48,7 +66,7 @@ export async function POST(req: Request) {
                 updatedAt: new Date(),
                 StudentProfile: {
                     create: {
-                        id: randomUUID(),
+                        id: studentProfileId,
                         idNumber: body.idNumber,
                         department: body.department,
                         batch: body.batch,
@@ -58,8 +76,11 @@ export async function POST(req: Request) {
             }
         });
         return NextResponse.json(newUser);
-    } catch (error) {
-        console.error("Create student error", error);
-        return NextResponse.json({ error: "Failed to create student" }, { status: 500 });
+    } catch (error: any) {
+        console.error("Create student error details:", error);
+        return NextResponse.json({
+            error: "Failed to create student",
+            details: error.message || "Unknown error"
+        }, { status: 500 });
     }
 }

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
-export function TopBar({ title }: { title?: string }) {
+export function TopBar({ title, user }: { title?: string, user?: any }) {
     return (
         <header className="flex h-16 w-full items-center justify-between border-b border-border bg-card px-8">
             <div className="flex items-center gap-4">
@@ -29,12 +29,12 @@ export function TopBar({ title }: { title?: string }) {
 
                 <div className="flex items-center gap-2 border-l border-border pl-4">
                     <div className="text-right hidden md:block">
-                        <p className="text-sm font-medium leading-none">Alex Johnson</p>
-                        <p className="text-xs text-muted-foreground">CS Student</p>
+                        <p className="text-sm font-medium leading-none">{user?.name || "User"}</p>
+                        <p className="text-xs text-muted-foreground">{user?.email || "Student"}</p>
                     </div>
                     <Avatar className="h-9 w-9 border border-border">
                         <AvatarImage src="/avatars/01.png" alt="@alex" />
-                        <AvatarFallback>AJ</AvatarFallback>
+                        <AvatarFallback>{user?.name ? user.name.substring(0, 2).toUpperCase() : "U"}</AvatarFallback>
                     </Avatar>
                 </div>
             </div>

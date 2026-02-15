@@ -20,23 +20,38 @@ export default function FacultyProjectDetailsPage() {
 
     useEffect(() => {
         if (!projectId) return;
-
-        const fetchProject = async () => {
-            try {
-                const res = await fetch(`/api/projects/${projectId}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    setProject(data);
-                }
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchProject();
     }, [projectId]);
+
+    const fetchProject = async () => {
+        try {
+            const res = await fetch(`/api/projects/${projectId}`);
+            if (res.ok) {
+                const data = await res.json();
+                setProject(data);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleMilestoneUpdate = async (milestoneId: string, isCompleted: boolean) => {
+        try {
+            const res = await fetch(`/api/projects/${projectId}/milestones/${milestoneId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isCompleted })
+            });
+
+            if (res.ok) {
+                fetchProject(); // Refresh to show updated status
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    }
 
     if (loading) return <div className="p-8 text-center text-slate-400">Loading details...</div>;
     if (!project) return <div className="p-8 text-center text-slate-400">Project not found.</div>;
@@ -64,7 +79,7 @@ export default function FacultyProjectDetailsPage() {
                 <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-8">
                     <div>
                         <div className="flex items-center gap-3 mb-2">
-                            <h1 className="text-3xl font-bold gradient-primary bg-clip-text text-transparent">
+                            <h1 className="text-3xl font-bold gradient-primary bg-clip-text text-transparent selection:text-white selection:bg-cyan-500/20">
                                 {project.title}
                             </h1>
                             <Badge variant="outline" className="border-cyan-500/30 text-cyan-400">{project.status.replace('_', ' ')}</Badge>
@@ -112,7 +127,10 @@ export default function FacultyProjectDetailsPage() {
                                 ) : (
                                     milestones.map((milestone: any) => (
                                         <div key={milestone.id} className="flex items-start gap-4 p-4 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-slate-800">
-                                            <div className={`mt-1 h-2 w-2 rounded-full ${milestone.isCompleted ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                                            <div className={`mt-1 h-5 w-5 rounded-full border-2 flex items-center justify-center cursor-pointer ${milestone.isCompleted ? 'bg-emerald-500 border-emerald-500' : 'border-slate-600'}`}
+                                                onClick={() => handleMilestoneUpdate(milestone.id, !milestone.isCompleted)}>
+                                                {milestone.isCompleted && <CheckCircle2 className="h-3 w-3 text-white" />}
+                                            </div>
                                             <div className="flex-1">
                                                 <div className="flex items-center justify-between">
                                                     <h4 className={`font-medium ${milestone.isCompleted ? 'text-slate-400 line-through' : 'text-slate-200'}`}>{milestone.title}</h4>
@@ -125,6 +143,12 @@ export default function FacultyProjectDetailsPage() {
                                                     Due: {new Date(milestone.deadline).toLocaleDateString()}
                                                 </div>
                                             </div>
+                                            {!milestone.isCompleted && (
+                                                <Button size="sm" variant="outline" className="h-7 text-xs border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10"
+                                                    onClick={() => handleMilestoneUpdate(milestone.id, true)}>
+                                                    Approve
+                                                </Button>
+                                            )}
                                         </div>
                                     ))
                                 )}
@@ -156,7 +180,7 @@ export default function FacultyProjectDetailsPage() {
                             </TabsContent>
 
                             <TabsContent value="activity">
-                                <div className="text-center p-8 border border-dashed border-slate-800 rounded-lg text-slate-500">Activity log coming soon</div>
+                                <ActivityLog projectId={projectId} />
                             </TabsContent>
                         </Tabs>
                     </div>
@@ -208,4 +232,54 @@ export default function FacultyProjectDetailsPage() {
             </main>
         </div>
     )
+}
+
+function ActivityLog({ projectId }: { projectId: string }) {
+    const [logs, setLogs] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetch(`/api/projects/${projectId}/activity`)
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) setLogs(data);
+            })
+            .catch(err => console.error(err))
+            .finally(() => setLoading(false));
+    }, [projectId]);
+
+    if (loading) return <div className="text-center p-4 text-slate-500">Loading activity access...</div>;
+
+    if (logs.length === 0) {
+        return (
+            <div className="text-center p-8 border border-dashed border-slate-800 rounded-lg text-slate-500">
+                No recent activity.
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-4">
+            {logs.map((log) => (
+                <div key={log.id} className="flex gap-4 p-4 rounded-xl bg-white/5 border border-white/5">
+                    <Avatar className="h-8 w-8 border border-slate-700">
+                        <AvatarFallback className="bg-slate-800 text-xs text-slate-300">
+                            {log.User?.fullName?.substring(0, 2).toUpperCase() || "SY"}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div>
+                        <p className="text-sm font-medium text-slate-200">
+                            <span className="text-cyan-400">{log.User?.fullName}</span> {log.action.replace(/_/g, ' ').toLowerCase()}
+                        </p>
+                        {log.details && (
+                            <p className="text-xs text-slate-400 mt-0.5">{log.details}</p>
+                        )}
+                        <p className="text-[10px] text-slate-600 mt-2">
+                            {new Date(log.createdAt).toLocaleString()}
+                        </p>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
 }

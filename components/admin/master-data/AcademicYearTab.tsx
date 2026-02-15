@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Edit2, Trash2, Check, Calendar as CalendarIcon } from "lucide-react"
+import { Plus, Edit2, Trash2, Check, Calendar as CalendarIcon, AlertCircle } from "lucide-react"
 import { Modal } from "@/components/ui/modal"
 import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export function AcademicYearTab() {
     const [data, setData] = useState<any[]>([])
@@ -13,6 +14,8 @@ export function AcademicYearTab() {
     const [showModal, setShowModal] = useState(false)
     const [formData, setFormData] = useState<any>({})
     const [isEditing, setIsEditing] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const [success, setSuccess] = useState<string | null>(null)
 
     useEffect(() => {
         fetchYears()
@@ -36,6 +39,7 @@ export function AcademicYearTab() {
         setFormData({ isCurrent: false })
         setIsEditing(false)
         setShowModal(true)
+        setError(null)
     }
 
     const handleEdit = (item: any) => {
@@ -52,6 +56,7 @@ export function AcademicYearTab() {
         })
         setIsEditing(true)
         setShowModal(true)
+        setError(null)
     }
 
     const handleDelete = async (id: string) => {
@@ -61,14 +66,22 @@ export function AcademicYearTab() {
             const res = await fetch(`/api/academic-years/${id}`, { method: 'DELETE' });
             if (res.ok) {
                 fetchYears();
+                setSuccess("Academic year deleted successfully");
+                setTimeout(() => setSuccess(null), 3000);
+            } else {
+                const json = await res.json();
+                alert(json.error || "Failed to delete academic year");
             }
         } catch (error) {
             console.error(error);
+            alert("Failed to delete academic year");
         }
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        setError(null)
+        setSuccess(null)
 
         const url = isEditing ? `/api/academic-years/${formData.id}` : '/api/academic-years'
         const method = isEditing ? 'PUT' : 'POST'
@@ -80,17 +93,32 @@ export function AcademicYearTab() {
                 body: JSON.stringify(formData)
             })
 
+            const json = await res.json()
+
             if (res.ok) {
                 fetchYears()
                 setShowModal(false)
+                setSuccess(isEditing ? "Academic year updated" : "Academic year created")
+                setTimeout(() => setSuccess(null), 3000)
+            } else {
+                setError(json.error || "Operation failed")
             }
         } catch (error) {
             console.error(error)
+            setError("An unexpected error occurred")
         }
     }
 
     return (
         <div className="space-y-4">
+            {success && (
+                <Alert className="bg-green-500/10 text-green-400 border-green-500/20">
+                    <Check className="h-4 w-4" />
+                    <AlertTitle>Success</AlertTitle>
+                    <AlertDescription>{success}</AlertDescription>
+                </Alert>
+            )}
+
             <div className="flex justify-between">
                 <div className="text-sm text-slate-400 pt-2">Manage academic calendars and timelines.</div>
                 <Button onClick={handleAdd} className="bg-blue-600 gap-2">
@@ -155,6 +183,13 @@ export function AcademicYearTab() {
 
             <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={isEditing ? "Edit Academic Year" : "Add Academic Year"}>
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    {error && (
+                        <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>Error</AlertTitle>
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    )}
                     <div>
                         <label className="text-sm font-medium text-slate-300">Year Name</label>
                         <Input

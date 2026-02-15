@@ -52,6 +52,24 @@ export async function POST(req: Request) {
         const body = await req.json();
         const { projectId, title, date, time } = body;
 
+        // Security Check: Ensure Faculty is the guide for this project
+        if (payload.role === 'FACULTY') {
+            const project = await prisma.project.findUnique({
+                where: { id: projectId },
+                select: { guideId: true }
+            });
+
+            if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+
+            const facultyProfile = await prisma.facultyProfile.findUnique({
+                where: { userId: payload.id as string }
+            });
+
+            if (!facultyProfile || project.guideId !== facultyProfile.id) {
+                return NextResponse.json({ error: "Forbidden: You are not the guide for this project" }, { status: 403 });
+            }
+        }
+
         // Combine date and time
         const meetingDateTime = new Date(`${date}T${time}`);
 
@@ -60,6 +78,16 @@ export async function POST(req: Request) {
                 projectId,
                 title,
                 date: meetingDateTime,
+            }
+        });
+
+        // Log Activity
+        await prisma.activityLog.create({
+            data: {
+                projectId,
+                userId: payload.id as string,
+                action: "MEETING_SCHEDULED",
+                details: `Meeting "${title}" scheduled on ${date} at ${time}`
             }
         });
 

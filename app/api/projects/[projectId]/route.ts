@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifyJWT } from "@/lib/auth";
+import { cookies } from "next/headers";
 
 // Helper to get parameters in Next.js 13+ App Router
 // The second argument `context` contains params as a Promise
@@ -9,6 +11,13 @@ export async function GET(
 ) {
     try {
         const { projectId } = await params;
+        const cookieStore = await cookies();
+        const token = cookieStore.get("token")?.value;
+
+        if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+        const payload = await verifyJWT(token);
+        if (!payload) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
 
         const project = await prisma.project.findUnique({
             where: { id: projectId },
@@ -28,12 +37,36 @@ export async function GET(
                     }
                 },
                 Milestone: true,
-                Document: true
+                Document: true,
+                Type: true
             }
         });
 
         if (!project) {
             return NextResponse.json({ error: "Project not found" }, { status: 404 });
+        }
+
+        // Access Control
+        if (payload.role !== 'ADMIN') {
+            let hasAccess = false;
+
+            if (payload.role === 'FACULTY') {
+                // Check if faculty is the guide
+                const faculty = await prisma.facultyProfile.findUnique({ where: { userId: payload.id as string } });
+                if (faculty && faculty.id === project.guideId) {
+                    hasAccess = true;
+                }
+            } else if (payload.role === 'STUDENT') {
+                // Check if student is in the group
+                const student = await prisma.studentProfile.findUnique({ where: { userId: payload.id as string } });
+                if (student && student.groupId === project.groupId) {
+                    hasAccess = true;
+                }
+            }
+
+            if (!hasAccess) {
+                return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+            }
         }
 
         return NextResponse.json(project);
@@ -52,8 +85,32 @@ export async function PATCH(
         const { projectId } = await params;
         const body = await request.json();
 
+        const cookieStore = await cookies();
+        const token = cookieStore.get("token")?.value;
+
+        if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+        const payload = await verifyJWT(token);
+        if (!payload) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+
         // Prevent updating ID
         delete body.id;
+
+        // Handle Project Type update (name -> typeId)
+        if (body.type) {
+            const projectType = await prisma.projectType.findUnique({
+                where: { name: body.type }
+            });
+            if (projectType) {
+                body.typeId = projectType.id;
+            } else {
+                // If type doesn't exist, maybe create it? For now, let's keep it safe and just not update if invalid.
+                // Or better, create it if it doesn't exist to match POST behavior.
+                const newType = await prisma.projectType.create({ data: { name: body.type } });
+                body.typeId = newType.id;
+            }
+            delete body.type; // Remove 'type' string from body as it's not in Project model
+        }
 
         // If members are provided, update the group members
         if (body.members && Array.isArray(body.members)) {
@@ -102,6 +159,19 @@ export async function DELETE(
 ) {
     try {
         const { projectId } = await params;
+
+        const cookieStore = await cookies();
+        const token = cookieStore.get("token")?.value;
+
+        if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+        const payload = await verifyJWT(token);
+        if (!payload) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+
+        // Only ADMIN can delete
+        if (payload.role !== 'ADMIN') {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
 
         await prisma.project.delete({
             where: { id: projectId }

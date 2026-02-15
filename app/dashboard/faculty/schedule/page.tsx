@@ -92,7 +92,7 @@ export default function FacultySchedulePage() {
 
             <main className="flex-1 p-6 md:p-8 max-w-[1000px] mx-auto w-full relative z-10">
                 <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-3xl font-bold gradient-primary bg-clip-text text-transparent">
+                    <h1 className="text-3xl font-bold gradient-primary bg-clip-text text-transparent selection:text-white selection:bg-cyan-500/20">
                         My Schedule
                     </h1>
                     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

@@ -422,3 +422,34 @@
     transform: translateY(-30px) translateX(5px);
   }
 }
+
+/* Global Fix for Gradient Text Selection */
+::selection {
+  background-color: rgba(6, 182, 212, 0.99);
+  color: #ffffff;
+  text-shadow: none;
+}
+
+::-moz-selection {
+  background-color: rgba(6, 182, 212, 0.99);
+  color: #ffffff;
+  text-shadow: none;
+}
+
+/* Force override for transparent text using text-shadow hack */
+/* This is necessary because browsers ignore color/text-fill-color in ::selection for bg-clip-text elements */
+.bg-clip-text::selection,
+.text-transparent::selection,
+[class*="text-transparent"]::selection {
+  background-color: rgba(6, 182, 212, 0.3) !important;
+  text-shadow: 0 0 0 #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.bg-clip-text::-moz-selection,
+.text-transparent::-moz-selection,
+[class*="text-transparent"]::-moz-selection {
+  background-color: rgba(6, 182, 212, 0.3) !important;
+  text-shadow: 0 0 0 #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}

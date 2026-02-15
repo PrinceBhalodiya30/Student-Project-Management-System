@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle2, XCircle, Clock, AlertCircle } from "lucide-react"
+import { CheckCircle2, XCircle, Clock, AlertCircle, Calendar } from "lucide-react"
 
 export default function FacultyEvaluationsPage() {
     const [projects, setProjects] = useState<any[]>([]);
@@ -29,30 +29,23 @@ export default function FacultyEvaluationsPage() {
     }, []);
 
     const proposedProjects = projects.filter(p => p.status === 'PROPOSED');
-    const activeProjects = projects.filter(p => ['APPROVED', 'IN_PROGRESS'].includes(p.status));
+    // Get all pending milestones across active projects
+    const pendingMilestones = projects.flatMap(p =>
+        (p.Milestone || [])
+            .filter((m: any) => !m.isCompleted)
+            .map((m: any) => ({ ...m, projectName: p.title, projectId: p.id }))
+    ).sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
 
     const handleStatusUpdate = async (projectId: string, newStatus: string) => {
-        // We need an API for this. reusing existing update API or creating new one?
-        // Usually /api/projects/[id] allows updates. 
-        // Let's assume we can call PUT /api/projects/[id] with status.
         try {
-            const res = await fetch(`/api/projects/${projectId}`, {
-                method: 'PATCH',
+            const res = await fetch(`/api/projects/${projectId}/approve`, {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: newStatus })
             });
 
             if (res.ok) {
-                // Determine user-friendly validation message based on success
-                const message = newStatus === 'APPROVED' ?
-                    "Project approved successfully!" :
-                    newStatus === 'REJECTED' ?
-                        "Project rejected." :
-                        "Project status updated.";
-
-                // Use a simple alert if toast is not available, or toast if it is.
-                // Assuming no toast for now to be safe, just refresh.
-                alert(message);
+                alert(newStatus === 'APPROVED' ? "Project approved!" : "Project rejected.");
                 fetchProjects();
             } else {
                 console.error("Failed to update status");
@@ -61,6 +54,22 @@ export default function FacultyEvaluationsPage() {
             console.error(error);
         }
     };
+
+    const handleMilestoneApprove = async (projectId: string, milestoneId: string) => {
+        try {
+            const res = await fetch(`/api/projects/${projectId}/milestones/${milestoneId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isCompleted: true })
+            });
+
+            if (res.ok) {
+                fetchProjects(); // Refresh to remove from list
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    }
 
     return (
         <div className="flex flex-col min-h-screen bg-background relative overflow-hidden">
@@ -74,7 +83,7 @@ export default function FacultyEvaluationsPage() {
 
             <main className="flex-1 p-6 md:p-8 max-w-[1600px] mx-auto w-full relative z-10">
                 <div className="flex items-center justify-between mb-8">
-                    <h1 className="text-3xl font-bold gradient-primary bg-clip-text text-transparent">
+                    <h1 className="text-3xl font-bold gradient-primary bg-clip-text text-transparent selection:text-white selection:bg-cyan-500/20">
                         Project Evaluations
                     </h1>
                 </div>
@@ -89,6 +98,9 @@ export default function FacultyEvaluationsPage() {
                         </TabsTrigger>
                         <TabsTrigger value="reviews" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white">
                             Milestone Reviews
+                            {pendingMilestones.length > 0 && (
+                                <span className="ml-2 bg-amber-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{pendingMilestones.length}</span>
+                            )}
                         </TabsTrigger>
                     </TabsList>
 
@@ -142,12 +154,39 @@ export default function FacultyEvaluationsPage() {
                         )}
                     </TabsContent>
 
-                    <TabsContent value="reviews" className="mt-6">
-                        <div className="text-center p-12 glass-modern rounded-xl border-dashed border-slate-700">
-                            <Clock className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-                            <p className="text-slate-400">Milestone review feature under development.</p>
-                            <p className="text-xs text-slate-600 mt-2">Checking milestones for {activeProjects.length} active projects...</p>
-                        </div>
+                    <TabsContent value="reviews" className="mt-6 space-y-4">
+                        {pendingMilestones.length === 0 ? (
+                            <div className="text-center p-12 glass-modern rounded-xl border-dashed border-slate-700">
+                                <Clock className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+                                <p className="text-slate-400">No pending milestones to review.</p>
+                            </div>
+                        ) : (
+                            pendingMilestones.map((milestone: any) => (
+                                <Card key={milestone.id} className="glass-modern border-slate-800 hover:border-cyan-500/30 transition-all">
+                                    <CardContent className="p-4 flex items-center justify-between gap-4">
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h4 className="font-medium text-slate-200">{milestone.title}</h4>
+                                                <span className="text-xs text-muted-foreground">• {milestone.projectName}</span>
+                                            </div>
+                                            <div className="flex items-center gap-4 text-xs text-slate-500">
+                                                <div className="flex items-center gap-1">
+                                                    <Calendar className="h-3 w-3" />
+                                                    Due: {new Date(milestone.deadline).toLocaleDateString()}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            size="sm"
+                                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                            onClick={() => handleMilestoneApprove(milestone.projectId, milestone.id)}
+                                        >
+                                            Mark Complete
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            ))
+                        )}
                     </TabsContent>
                 </Tabs>
             </main>

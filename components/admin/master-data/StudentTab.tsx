@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Edit2, Trash2, UserPlus } from "lucide-react"
 import { Modal } from "@/components/ui/modal"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { BulkUpload } from "@/components/admin/bulk-upload"
 
 export function StudentTab() {
     const [data, setData] = useState<any[]>([])
@@ -72,7 +73,8 @@ export function StudentTab() {
             ...item,
             id: item.userId, // Important: Use User ID for updates
             isActive: item.isActive,
-            isLeader: item.isLeader
+            isLeader: item.isLeader,
+            password: '********'
         })
         setIsEditing(true)
         setShowModal(true)
@@ -96,15 +98,30 @@ export function StudentTab() {
         const method = isEditing ? 'PUT' : 'POST'
 
         try {
-            await fetch(url, {
+            const payload = { ...formData }
+            // Remove dummy password if it hasn't been changed
+            if (payload.password === '********') {
+                delete payload.password
+            }
+
+            const res = await fetch(url, {
                 method: method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload)
             })
+
+            const json = await res.json();
+
+            if (!res.ok) {
+                alert(json.error || "Operation failed"); // Simple alert for now, can be replaced with better UI
+                return;
+            }
+
             fetchStudents()
             setShowModal(false)
         } catch (error) {
             console.error(error)
+            alert("An unexpected error occurred");
         }
     }
 
@@ -137,7 +154,10 @@ export function StudentTab() {
                         </SelectContent>
                     </Select>
                 </div>
-                <Button className="bg-blue-600" onClick={() => { setFormData({}); setIsEditing(false); setShowModal(true); }}><UserPlus className="mr-2 h-4 w-4" /> Add Student</Button>
+                <div className="flex gap-2">
+                    <BulkUpload type="student" onUploadComplete={fetchStudents} />
+                    <Button className="bg-blue-600" onClick={() => { setFormData({}); setIsEditing(false); setShowModal(true); }}><UserPlus className="mr-2 h-4 w-4" /> Add Student</Button>
+                </div>
             </div>
             <div className="bg-slate-900 rounded border border-slate-800 flex flex-col">
                 <div className="overflow-x-auto">
@@ -218,7 +238,7 @@ export function StudentTab() {
 
                         <div>
                             <Input
-                                placeholder={isEditing ? "•••••••• (Unchanged)" : "Password"}
+                                placeholder="Password"
                                 type="password"
                                 className="bg-slate-800 border-slate-700"
                                 required={!isEditing}
@@ -227,7 +247,7 @@ export function StudentTab() {
                             />
                             {isEditing && (
                                 <p className="text-xs text-slate-500 mt-1">
-                                    Leave blank to keep the current password.
+                                    Overwrite to change password.
                                 </p>
                             )}
                         </div>

@@ -17,17 +17,30 @@ export async function GET(request: Request) {
 
         const csvRows = [
             ['Project Title', 'Type', 'Status', 'Guide', 'Group Members', 'Created At'],
-            ...projects.map(p => [
-                p.title,
-                p.Type.name,
-                p.status,
-                p.guideId || 'Unassigned',
-                p.ProjectGroup?.StudentProfile.map(s => s.User.fullName).join(', ') || 'No Members',
-                new Date(p.createdAt).toLocaleDateString()
-            ])
+            ...projects.map(p => {
+                const members = p.ProjectGroup?.StudentProfile
+                    ? p.ProjectGroup.StudentProfile.map(s => s.User.fullName).join(', ')
+                    : 'No Members';
+
+                return [
+                    p.title || 'Untitled',
+                    p.Type?.name || 'Unknown',
+                    p.status,
+                    p.guideId || 'Unassigned',
+                    members,
+                    new Date(p.createdAt).toLocaleDateString()
+                ];
+            })
         ];
 
-        const csvContent = csvRows.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+        // Add Byte Order Mark (BOM) for Excel compatibility
+        const bom = '\uFEFF';
+        const csvContent = bom + csvRows.map(row => row.map(cell => {
+            // Escape quotes and wrap in quotes
+            const stringCell = String(cell || '');
+            return `"${stringCell.replace(/"/g, '""')}"`;
+        }).join(',')).join('\n');
+
         return new NextResponse(csvContent, {
             headers: {
                 'Content-Type': 'text/csv',

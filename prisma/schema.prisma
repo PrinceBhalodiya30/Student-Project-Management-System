@@ -1,6 +1,7 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  provider        = "prisma-client"
+  output          = "../app/generated/prisma"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -90,6 +91,7 @@ model Project {
   Document       Document[]
   Meeting        Meeting[]
   Milestone      Milestone[]
+  ActivityLog    ActivityLog[]
   ProjectGroup   ProjectGroup    @relation(fields: [groupId], references: [id])
   FacultyProfile FacultyProfile? @relation(fields: [guideId], references: [id], onDelete: SetNull)
 }
@@ -136,6 +138,18 @@ model User {
   Message        Message[]
   Notification   Notification[]
   StudentProfile StudentProfile?
+  ActivityLog    ActivityLog[]
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+  Project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum ProjectStatus {

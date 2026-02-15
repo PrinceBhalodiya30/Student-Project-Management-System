@@ -34,7 +34,7 @@ export default function MasterDataPage() {
                         <Database className="h-6 w-6 text-white" />
                     </div>
                     <div>
-                        <h1 className="text-4xl font-bold tracking-tight text-cyan-400 animate-slide-down">
+                        <h1 className="text-4xl font-bold tracking-tight gradient-primary bg-clip-text text-transparent animate-slide-down selection:text-white selection:bg-cyan-500/20">
                             Master Data Management
                         </h1>
                         <p className="text-muted-foreground mt-1">Configure institutional data, personnel, and academic timelines</p>

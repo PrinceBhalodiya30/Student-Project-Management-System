@@ -34,7 +34,7 @@ export default function LoginPage() {
                     <div className="p-3 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/20 animate-pulse-slow">
                         <BookOpen className="h-8 w-8 text-white" />
                     </div>
-                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent selection:text-white selection:bg-cyan-500/20">
                         SPMS Portal
                     </h1>
                 </div>
@@ -165,7 +165,7 @@ export default function LoginPage() {
                             </Button>
                         </form>
 
-                        
+
                     </CardContent>
                 </Card>
 

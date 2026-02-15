@@ -29,7 +29,7 @@ export default function FacultyProjectsPage() {
             </div>
 
             <main className="flex-1 p-6 md:p-8 max-w-[1600px] mx-auto w-full relative z-10">
-                <h1 className="text-3xl font-bold mb-8 gradient-primary bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold mb-8 gradient-primary bg-clip-text text-transparent selection:text-white selection:bg-cyan-500/20">
                     My Assigned Projects
                 </h1>
 

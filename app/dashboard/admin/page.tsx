@@ -98,7 +98,7 @@ export default function AdminDashboard() {
                 {/* Header */}
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-slide-down">
                     <div>
-                        <h1 className="text-4xl md:text-5xl font-bold tracking-tight gradient-primary bg-clip-text text-transparent flex items-center gap-3">
+                        <h1 className="text-4xl md:text-5xl font-bold tracking-tight gradient-primary bg-clip-text text-transparent flex items-center gap-3 selection:text-white selection:bg-cyan-500/20">
                             <Sparkles className="h-8 w-8 text-cyan-400 animate-pulse-slow" />
                             Overview
                         </h1>

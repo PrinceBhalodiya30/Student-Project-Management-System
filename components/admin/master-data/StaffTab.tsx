@@ -4,9 +4,11 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Search, Plus, Edit2, Trash2 } from "lucide-react"
+import { Search, Plus, Edit2, Trash2, AlertCircle } from "lucide-react"
 import { Modal } from "@/components/ui/modal"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { BulkUpload } from "@/components/admin/bulk-upload"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export function StaffTab() {
     const [data, setData] = useState<any[]>([])
@@ -14,6 +16,8 @@ export function StaffTab() {
     const [showModal, setShowModal] = useState(false)
     const [formData, setFormData] = useState<any>({})
     const [isEditing, setIsEditing] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const [success, setSuccess] = useState<string | null>(null)
 
     const [departments, setDepartments] = useState<any[]>([])
 
@@ -73,10 +77,13 @@ export function StaffTab() {
             ...item,
             role: item.role,
             id: item.userId,
-            isActive: item.status === 'Active'
+            isActive: item.status === 'Active',
+            password: '********',
+            department: item.department
         })
         setIsEditing(true)
         setShowModal(true)
+        setError(null)
     }
 
     const handleDelete = async (id: string) => {
@@ -84,32 +91,65 @@ export function StaffTab() {
         try {
             const res = await fetch(`/api/staff/${id}`, { method: 'DELETE' });
             if (res.ok) fetchStaff();
+            else {
+                const json = await res.json();
+                alert(json.error || "Failed to delete");
+            }
         } catch (error) {
             console.error(error);
+            alert("Failed to delete staff member");
         }
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        setError(null)
+        setSuccess(null)
 
         const url = isEditing ? `/api/staff/${formData.id}` : '/api/staff'
         const method = isEditing ? 'PUT' : 'POST'
 
         try {
-            await fetch(url, {
+            const payload = { ...formData }
+            // Remove dummy password if it hasn't been changed
+            if (payload.password === '********') {
+                delete payload.password
+            }
+
+            const res = await fetch(url, {
                 method: method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload)
             })
+
+            const json = await res.json()
+
+            if (!res.ok) {
+                throw new Error(json.error || "Operation failed")
+            }
+
             fetchStaff()
             setShowModal(false)
-        } catch (error) {
-            console.error(error)
+            setSuccess(isEditing ? "Staff updated successfully" : "Staff created successfully")
+
+            // Clear success message after 3 seconds
+            setTimeout(() => setSuccess(null), 3000)
+
+        } catch (err: any) {
+            setError(err.message || "Something went wrong")
         }
     }
 
     return (
         <div className="space-y-4">
+            {success && (
+                <Alert className="bg-green-500/10 text-green-400 border-green-500/20">
+                    <Check className="h-4 w-4" />
+                    <AlertTitle>Success</AlertTitle>
+                    <AlertDescription>{success}</AlertDescription>
+                </Alert>
+            )}
+
             <div className="flex flex-col md:flex-row justify-between gap-4">
                 <div className="flex gap-2 flex-wrap">
                     <Input
@@ -136,11 +176,14 @@ export function StaffTab() {
                             <SelectItem value="Guide">Guide</SelectItem>
                             <SelectItem value="Convener">Convener</SelectItem>
                             <SelectItem value="Expert">Expert</SelectItem>
-                            <SelectItem value="ADMIN">Admin</SelectItem>
+                            <SelectItem value="ADMIN">System Admin</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
-                <Button onClick={() => { setFormData({}); setIsEditing(false); setShowModal(true); }} className="bg-blue-600">Add Staff</Button>
+                <div className="flex gap-2">
+                    <BulkUpload type="faculty" onUploadComplete={fetchStaff} />
+                    <Button onClick={() => { setFormData({}); setIsEditing(false); setShowModal(true); setError(null); }} className="bg-blue-600">Add Staff</Button>
+                </div>
             </div>
 
             <div className="bg-slate-900 rounded border border-slate-800 flex flex-col">
@@ -217,6 +260,13 @@ export function StaffTab() {
 
             <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={isEditing ? "Edit Staff" : "Add Staff"}>
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    {error && (
+                        <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>Error</AlertTitle>
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    )}
                     <div>
                         <label className="text-sm font-medium text-slate-300">Full Name</label>
                         <Input
@@ -238,19 +288,19 @@ export function StaffTab() {
                     </div>
                     <div>
                         <label className="text-sm font-medium text-slate-300">
-                            {isEditing ? "Password (leave blank to keep current)" : "Password"}
+                            Password
                         </label>
                         <Input
                             type="password"
                             required={!isEditing}
                             className="bg-slate-800 border-slate-700 mt-1"
-                            placeholder={isEditing ? "•••••••• (Unchanged)" : "Enter password"}
+                            placeholder="Enter password"
                             value={formData.password || ''}
                             onChange={e => setFormData({ ...formData, password: e.target.value })}
                         />
                         {isEditing && (
                             <p className="text-xs text-slate-500 mt-1">
-                                Leave blank to keep the current password.
+                                Overwrite to change password.
                             </p>
                         )}
                     </div>
@@ -311,3 +361,4 @@ export function StaffTab() {
         </div>
     )
 }
+import { Check } from "lucide-react"

@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Plus, Edit2, Trash2 } from "lucide-react"
+import { Search, Plus, Edit2, Trash2, AlertCircle, Check } from "lucide-react"
 import { Modal } from "@/components/ui/modal"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export function DepartmentTab() {
     const [data, setData] = useState<any[]>([])
@@ -12,6 +13,8 @@ export function DepartmentTab() {
     const [showModal, setShowModal] = useState(false)
     const [formData, setFormData] = useState<any>({})
     const [isEditing, setIsEditing] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const [success, setSuccess] = useState<string | null>(null)
 
     useEffect(() => {
         fetchDepartments()
@@ -35,12 +38,14 @@ export function DepartmentTab() {
         setFormData({})
         setIsEditing(false)
         setShowModal(true)
+        setError(null)
     }
 
     const handleEdit = (item: any) => {
         setFormData(item)
         setIsEditing(true)
         setShowModal(true)
+        setError(null)
     }
 
     const handleDelete = async (id: string) => {
@@ -50,14 +55,22 @@ export function DepartmentTab() {
             const res = await fetch(`/api/departments/${id}`, { method: 'DELETE' });
             if (res.ok) {
                 fetchDepartments();
+                setSuccess("Department deleted successfully");
+                setTimeout(() => setSuccess(null), 3000);
+            } else {
+                const json = await res.json();
+                alert(json.error || "Failed to delete department");
             }
         } catch (error) {
             console.error(error);
+            alert("Failed to delete department");
         }
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        setError(null)
+        setSuccess(null)
 
         const url = isEditing ? `/api/departments/${formData.id}` : '/api/departments'
         const method = isEditing ? 'PUT' : 'POST'
@@ -69,17 +82,32 @@ export function DepartmentTab() {
                 body: JSON.stringify(formData)
             })
 
+            const json = await res.json()
+
             if (res.ok) {
                 fetchDepartments()
                 setShowModal(false)
+                setSuccess(isEditing ? "Department updated successfully" : "Department created successfully")
+                setTimeout(() => setSuccess(null), 3000)
+            } else {
+                setError(json.error || "Operation failed")
             }
         } catch (error) {
             console.error(error)
+            setError("An unexpected error occurred")
         }
     }
 
     return (
         <div className="space-y-4">
+            {success && (
+                <Alert className="bg-green-500/10 text-green-400 border-green-500/20">
+                    <Check className="h-4 w-4" />
+                    <AlertTitle>Success</AlertTitle>
+                    <AlertDescription>{success}</AlertDescription>
+                </Alert>
+            )}
+
             <div className="flex justify-between">
                 <Input placeholder="Search departments..." className="max-w-xs bg-slate-900 border-slate-700" />
                 <Button onClick={handleAdd} className="bg-blue-600 gap-2">
@@ -128,6 +156,13 @@ export function DepartmentTab() {
 
             <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={isEditing ? "Edit Department" : "Add Department"}>
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    {error && (
+                        <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>Error</AlertTitle>
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    )}
                     <div>
                         <label className="text-sm font-medium text-slate-300">Department Name</label>
                         <Input

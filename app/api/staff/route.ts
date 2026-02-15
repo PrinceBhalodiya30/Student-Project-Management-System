@@ -51,24 +51,35 @@ export async function POST(request: Request) {
 
         const hashedPassword = await hashPassword(password || "password123");
 
-        const newUser = await prisma.user.create({
-            data: {
-                id: randomUUID(),
-                fullName: name,
-                email,
-                password: hashedPassword,
-                role: "FACULTY", // Enforce FACULTY role for staff management
-                isActive: isActive,
-                updatedAt: new Date(),
-                FacultyProfile: {
-                    create: {
-                        id: randomUUID(),
-                        department: department,
-                        designation: role, // Mapping role input to designation
-                        expertise: []
-                    }
+        let userData: any = {
+            id: randomUUID(),
+            fullName: name,
+            email,
+            password: hashedPassword,
+            isActive: isActive,
+            updatedAt: new Date(),
+        };
+
+        if (role === 'ADMIN') {
+            userData.role = 'ADMIN';
+            // Admins don't strictly need a FacultyProfile, but if you want to store department for them, you can.
+            // Based on the audit, we want to allow "Pure Admin" without forcing them to be faculty.
+            // So we skip FacultyProfile creation for pure admins OR we make it optional.
+            // Let's skip it to adhere to "Pure Admin" goal, assuming Admin doesn't need to be assigned projects as a guide.
+        } else {
+            userData.role = 'FACULTY';
+            userData.FacultyProfile = {
+                create: {
+                    id: randomUUID(),
+                    department: department,
+                    designation: role, // Mapping role input to designation
+                    expertise: []
                 }
-            },
+            };
+        }
+
+        const newUser = await prisma.user.create({
+            data: userData,
             include: {
                 FacultyProfile: true
             }

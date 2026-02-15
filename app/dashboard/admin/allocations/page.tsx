@@ -24,10 +24,10 @@ export default function AllocationsPage() {
     async function fetchData() {
         setLoading(true)
         try {
-            const res = await fetch('/api/allocations')
+            const res = await fetch('/api/allocations?status=all&maxLoad=5') // Fetch all to allow unassigning
             if (res.ok) {
                 const data = await res.json()
-                setProjects(data.unassignedProjects || [])
+                setProjects(data.projects || []) // Note: API returns 'projects' now, not 'unassignedProjects'
                 setFacultyList(data.faculty || [])
             }
         } catch (error) {
@@ -89,7 +89,7 @@ export default function AllocationsPage() {
                 {/* Header */}
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-4xl font-bold tracking-tight text-cyan-400 animate-slide-down">
+                        <h1 className="text-4xl font-bold tracking-tight gradient-primary bg-clip-text text-transparent animate-slide-down selection:text-white selection:bg-cyan-500/20">
                             Project Allocations
                         </h1>
                         <p className="text-muted-foreground mt-2">Assign faculty guides to pending student projects</p>

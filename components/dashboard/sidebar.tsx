@@ -28,6 +28,13 @@ const facultyNavItems = [
     { href: "/dashboard/faculty/evaluations", label: "Evaluations", icon: FileText },
 ]
 
+const studentNavItems = [
+    { href: "/dashboard/student", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/dashboard/student/project", label: "My Project", icon: FolderKanban },
+    { href: "/dashboard/student/tasks", label: "Tasks", icon: FileText },
+    { href: "/dashboard/student/schedule", label: "Schedule", icon: Users },
+]
+
 export function Sidebar() {
     const pathname = usePathname()
     const [isCollapsed, setIsCollapsed] = useState(false)
@@ -46,16 +53,25 @@ export function Sidebar() {
         <>
             {/* Mobile Menu Button */}
             <div className="lg:hidden fixed top-4 left-4 z-50">
-                <Sheet>
-                    <SheetTrigger asChild>
+                {/* Mobile Menu Button */}
+                <div className="lg:hidden fixed top-4 left-4 z-50">
+                    {mounted ? (
+                        <Sheet>
+                            <SheetTrigger asChild>
+                                <Button size="icon" className="glass-modern hover-glow-cyan active-press">
+                                    <Menu className="h-5 w-5" />
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent side="left" className="p-0 w-72 glass-modern border-r border-cyan-500/20">
+                                <SidebarContent pathname={pathname} onLogout={handleLogout} isMobile />
+                            </SheetContent>
+                        </Sheet>
+                    ) : (
                         <Button size="icon" className="glass-modern hover-glow-cyan active-press">
                             <Menu className="h-5 w-5" />
                         </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="p-0 w-72 glass-modern border-r border-cyan-500/20">
-                        <SidebarContent pathname={pathname} onLogout={handleLogout} isMobile />
-                    </SheetContent>
-                </Sheet>
+                    )}
+                </div>
             </div>
 
             {/* Desktop Sidebar */}
@@ -90,7 +106,11 @@ function SidebarContent({
     isMobile?: boolean
 }) {
     const isFaculty = pathname.startsWith("/dashboard/faculty")
-    const navItems = isFaculty ? facultyNavItems : adminNavItems
+    const isStudent = pathname.startsWith("/dashboard/student")
+
+    let navItems = adminNavItems
+    if (isFaculty) navItems = facultyNavItems
+    if (isStudent) navItems = studentNavItems
 
     return (
         <div className="flex flex-col h-full p-4">

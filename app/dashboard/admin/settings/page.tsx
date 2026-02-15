@@ -4,10 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
-import { Bell, Lock, User, Settings as SettingsIcon, Shield, Save } from "lucide-react"
+import { Lock, User, Save, ShieldCheck } from "lucide-react"
 import { useState, useEffect } from "react"
 import { AdminTopBar } from "@/components/admin/admin-topbar"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -22,12 +20,17 @@ export default function SettingsPage() {
     }, []);
 
     const fetchProfile = async () => {
-        const res = await fetch('/api/settings/profile?email=admin@spms.edu');
-        if (res.ok) {
-            const data = await res.json();
-            setProfile({ ...data, bio: 'System Administrator' });
+        try {
+            const res = await fetch('/api/settings/profile');
+            if (res.ok) {
+                const data = await res.json();
+                setProfile({ ...data, bio: 'System Administrator' });
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     }
 
     const handleProfileUpdate = async () => {
@@ -36,7 +39,7 @@ export default function SettingsPage() {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    currentEmail: 'admin@spms.edu',
+                    currentEmail: profile.email,
                     name: profile.fullName,
                     email: profile.email
                 })
@@ -77,6 +80,8 @@ export default function SettingsPage() {
         }
     }
 
+    if (loading) return null;
+
     return (
         <div className="flex flex-col min-h-screen bg-background relative overflow-hidden">
             {/* Gradient Background */}
@@ -88,214 +93,109 @@ export default function SettingsPage() {
                 <AdminTopBar title="Settings" />
             </div>
 
-            <main className="flex-1 p-6 md:p-8 space-y-6 max-w-[1200px] mx-auto w-full relative z-10">
-                {/* Header */}
-                <div>
-                    <h1 className="text-4xl font-bold tracking-tight text-cyan-400 animate-slide-down">
-                        Settings
+            <main className="flex-1 p-6 md:p-8 max-w-[1200px] mx-auto w-full relative z-10">
+                <div className="mb-8">
+                    <h1 className="text-3xl font-bold gradient-primary bg-clip-text text-transparent selection:text-white selection:bg-cyan-500/20">
+                        Account Settings
                     </h1>
-                    <p className="text-muted-foreground mt-2">Manage your account settings and preferences</p>
+                    <p className="text-muted-foreground mt-1">Update your profile and security preferences.</p>
                 </div>
 
-                <Tabs defaultValue="general" className="w-full">
-                    <TabsList className="glass-modern border-cyan-500/20 grid w-full grid-cols-4 lg:w-[500px]">
-                        <TabsTrigger value="general" className="data-[state=active]:bg-gradient-to-r data-[state=active]:bg-gradient-primary data-[state=active]:text-white">
-                            <User className="h-4 w-4 mr-2" />
-                            General
-                        </TabsTrigger>
-                        <TabsTrigger value="notifications" className="data-[state=active]:bg-gradient-to-r data-[state=active]:bg-gradient-primary data-[state=active]:text-white">
-                            <Bell className="h-4 w-4 mr-2" />
-                            Alerts
-                        </TabsTrigger>
-                        <TabsTrigger value="security" className="data-[state=active]:bg-gradient-to-r data-[state=active]:bg-gradient-primary data-[state=active]:text-white">
-                            <Lock className="h-4 w-4 mr-2" />
-                            Security
-                        </TabsTrigger>
-                        <TabsTrigger value="system" className="data-[state=active]:bg-gradient-to-r data-[state=active]:bg-gradient-primary data-[state=active]:text-white">
-                            <SettingsIcon className="h-4 w-4 mr-2" />
-                            System
-                        </TabsTrigger>
-                    </TabsList>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Profile Section */}
+                    <Card className="glass-modern border-cyan-500/20 h-fit">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <User className="h-5 w-5 text-cyan-400" />
+                                Profile Information
+                            </CardTitle>
+                            <CardDescription>Update your personal details</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="flex justify-center">
+                                <Avatar className="h-24 w-24 border-4 border-cyan-500/20 shadow-xl shadow-cyan-500/10">
+                                    <AvatarFallback className="bg-gradient-to-br from-cyan-600 to-blue-700 text-white text-3xl font-bold">
+                                        {profile.fullName?.substring(0, 2).toUpperCase() || "AD"}
+                                    </AvatarFallback>
+                                </Avatar>
+                            </div>
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="name">Full Name</Label>
+                                    <Input
+                                        id="name"
+                                        className="bg-slate-900/50 border-cyan-500/20 focus-visible:ring-cyan-500/50"
+                                        value={profile.fullName}
+                                        onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="email">Email Address</Label>
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        className="bg-slate-900/50 border-cyan-500/20 focus-visible:ring-cyan-500/50"
+                                        value={profile.email}
+                                        onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                        </CardContent>
+                        <CardFooter className="flex justify-end pt-4 border-t border-cyan-500/10">
+                            <Button onClick={handleProfileUpdate} className="bg-cyan-600 hover:bg-cyan-700 text-white shadow-lg shadow-cyan-500/20">
+                                <Save className="h-4 w-4 mr-2" /> Save Profile
+                            </Button>
+                        </CardFooter>
+                    </Card>
 
-                    <div className="mt-6 space-y-6">
-                        {/* General Settings */}
-                        <TabsContent value="general" className="space-y-6">
-                            <Card className="glass-modern border-cyan-500/20">
-                                <CardHeader>
-                                    <div className="flex items-center gap-4">
-                                        <Avatar className="h-20 w-20 border-4 border-violet-500/30 shadow-lg shadow-violet-500/20">
-                                            <AvatarFallback className="bg-gradient-to-br bg-gradient-primary text-white text-2xl font-bold">
-                                                AD
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <div>
-                                            <CardTitle className="text-2xl">Profile Information</CardTitle>
-                                            <CardDescription>Update your personal details</CardDescription>
-                                        </div>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="name">Full Name</Label>
-                                        <Input
-                                            id="name"
-                                            className="glass-modern border-cyan-500/20"
-                                            value={profile.fullName}
-                                            onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
-                                            placeholder="Enter your full name"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="email">Email</Label>
-                                        <Input
-                                            id="email"
-                                            type="email"
-                                            className="glass-modern border-cyan-500/20"
-                                            value={profile.email}
-                                            onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                                            placeholder="admin@spms.edu"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="bio">Role</Label>
-                                        <Input
-                                            id="bio"
-                                            className="glass-modern border-cyan-500/20"
-                                            value={profile.bio}
-                                            disabled
-                                        />
-                                    </div>
-                                </CardContent>
-                                <CardFooter>
-                                    <Button
-                                        onClick={handleProfileUpdate}
-                                        className="bg-gradient-to-r bg-gradient-primary hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-cyan-500/30"
-                                    >
-                                        <Save className="h-4 w-4 mr-2" />
-                                        Save Changes
-                                    </Button>
-                                </CardFooter>
-                            </Card>
-                        </TabsContent>
-
-                        {/* Notifications */}
-                        <TabsContent value="notifications" className="space-y-6">
-                            <Card className="glass-modern border-cyan-500/20">
-                                <CardHeader>
-                                    <CardTitle>Notification Preferences</CardTitle>
-                                    <CardDescription>Configure how you receive alerts</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    <div className="flex items-center justify-between p-4 glass-modern border-cyan-500/20 rounded-lg">
-                                        <div className="space-y-0.5">
-                                            <Label className="text-base">Email Notifications</Label>
-                                            <p className="text-sm text-muted-foreground">Receive email updates for new projects</p>
-                                        </div>
-                                        <Switch defaultChecked />
-                                    </div>
-                                    <div className="flex items-center justify-between p-4 glass-modern border-cyan-500/20 rounded-lg">
-                                        <div className="space-y-0.5">
-                                            <Label className="text-base">Project Updates</Label>
-                                            <p className="text-sm text-muted-foreground">Get notified when projects are submitted</p>
-                                        </div>
-                                        <Switch defaultChecked />
-                                    </div>
-                                    <div className="flex items-center justify-between p-4 glass-modern border-cyan-500/20 rounded-lg">
-                                        <div className="space-y-0.5">
-                                            <Label className="text-base">System Alerts</Label>
-                                            <p className="text-sm text-muted-foreground">Important system notifications</p>
-                                        </div>
-                                        <Switch defaultChecked />
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-
-                        {/* Security */}
-                        <TabsContent value="security" className="space-y-6">
-                            <Card className="glass-modern border-cyan-500/20">
-                                <CardHeader>
-                                    <CardTitle>Change Password</CardTitle>
-                                    <CardDescription>Update your account password</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="current">Current Password</Label>
-                                        <Input
-                                            id="current"
-                                            type="password"
-                                            className="glass-modern border-cyan-500/20"
-                                            value={passwordData.currentPassword}
-                                            onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="new">New Password</Label>
-                                        <Input
-                                            id="new"
-                                            type="password"
-                                            className="glass-modern border-cyan-500/20"
-                                            value={passwordData.newPassword}
-                                            onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="confirm">Confirm New Password</Label>
-                                        <Input
-                                            id="confirm"
-                                            type="password"
-                                            className="glass-modern border-cyan-500/20"
-                                            value={passwordData.confirmPassword}
-                                            onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                                        />
-                                    </div>
-                                </CardContent>
-                                <CardFooter>
-                                    <Button
-                                        onClick={handlePasswordUpdate}
-                                        className="bg-gradient-to-r bg-gradient-primary hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-cyan-500/30"
-                                    >
-                                        <Lock className="h-4 w-4 mr-2" />
-                                        Update Password
-                                    </Button>
-                                </CardFooter>
-                            </Card>
-                        </TabsContent>
-
-                        {/* System */}
-                        <TabsContent value="system" className="space-y-6">
-                            <Card className="glass-modern border-cyan-500/20">
-                                <CardHeader>
-                                    <CardTitle>System Preferences</CardTitle>
-                                    <CardDescription>Configure system-wide settings</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    <div className="flex items-center justify-between p-4 glass-modern border-cyan-500/20 rounded-lg">
-                                        <div className="space-y-0.5">
-                                            <Label className="text-base">Auto-save</Label>
-                                            <p className="text-sm text-muted-foreground">Automatically save changes</p>
-                                        </div>
-                                        <Switch defaultChecked />
-                                    </div>
-                                    <div className="flex items-center justify-between p-4 glass-modern border-cyan-500/20 rounded-lg">
-                                        <div className="space-y-0.5">
-                                            <Label className="text-base">Dark Mode</Label>
-                                            <p className="text-sm text-muted-foreground">Use dark theme</p>
-                                        </div>
-                                        <Switch defaultChecked />
-                                    </div>
-                                    <div className="flex items-center justify-between p-4 glass-modern border-cyan-500/20 rounded-lg">
-                                        <div className="space-y-0.5">
-                                            <Label className="text-base">Compact View</Label>
-                                            <p className="text-sm text-muted-foreground">Reduce spacing in lists</p>
-                                        </div>
-                                        <Switch />
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-                    </div>
-                </Tabs>
+                    {/* Security Section */}
+                    <Card className="glass-modern border-cyan-500/20 h-fit">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <ShieldCheck className="h-5 w-5 text-emerald-400" />
+                                Security Settings
+                            </CardTitle>
+                            <CardDescription>Ensure your account stays secure</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="current">Current Password</Label>
+                                <Input
+                                    id="current"
+                                    type="password"
+                                    className="bg-slate-900/50 border-cyan-500/20 focus-visible:ring-cyan-500/50"
+                                    value={passwordData.currentPassword}
+                                    onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="new">New Password</Label>
+                                <Input
+                                    id="new"
+                                    type="password"
+                                    className="bg-slate-900/50 border-cyan-500/20 focus-visible:ring-cyan-500/50"
+                                    value={passwordData.newPassword}
+                                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="confirm">Confirm New Password</Label>
+                                <Input
+                                    id="confirm"
+                                    type="password"
+                                    className="bg-slate-900/50 border-cyan-500/20 focus-visible:ring-cyan-500/50"
+                                    value={passwordData.confirmPassword}
+                                    onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                                />
+                            </div>
+                        </CardContent>
+                        <CardFooter className="flex justify-end pt-4 border-t border-cyan-500/10">
+                            <Button onClick={handlePasswordUpdate} variant="outline" className="border-cyan-500/20 hover:bg-cyan-500/10 text-cyan-400">
+                                <Lock className="h-4 w-4 mr-2" /> Update Password
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                </div>
             </main>
         </div>
     )

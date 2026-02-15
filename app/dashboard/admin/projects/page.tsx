@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import {
     Search, Plus, Filter, Eye, Folder, CheckCircle2, Users,
-    MoreHorizontal, Trash2, X, Briefcase, Clock, GraduationCap
+    MoreHorizontal, Trash2, X, Briefcase, Clock, GraduationCap, Edit2
 } from "lucide-react"
 import { AdminTopBar } from "@/components/admin/admin-topbar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -21,23 +21,28 @@ export default function ProjectsDirectoryPage() {
     const [loading, setLoading] = useState(true);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [stats, setStats] = useState({ total: 0, completed: 0, proposed: 0, activeStudents: 0 });
-    const [newProject, setNewProject] = useState({
+    const [formData, setFormData] = useState({
         title: "",
         description: "",
         type: "MAJOR",
         groupName: "",
         department: "CS",
-        members: []
+        members: [] as string[]
     });
+    const [isEditing, setIsEditing] = useState(false);
+    const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
     const [students, setStudents] = useState<any[]>([])
     const [searchTerm, setSearchTerm] = useState("");
     const [filterType, setFilterType] = useState("ALL");
     const [filterDept, setFilterDept] = useState("ALL");
     const router = useRouter();
 
+    const [projectTypes, setProjectTypes] = useState<any[]>([]);
+
     useEffect(() => {
         fetchProjects();
         fetch('/api/students').then(r => r.json()).then(setStudents);
+        fetch('/api/project-types').then(r => r.json()).then(setProjectTypes);
     }, []);
 
     async function fetchProjects() {
@@ -69,24 +74,58 @@ export default function ProjectsDirectoryPage() {
         }
     }
 
-    async function handleCreate(e: React.FormEvent) {
+    async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         try {
-            const res = await fetch('/api/projects', {
-                method: 'POST',
+            const url = isEditing && currentProjectId ? `/api/projects/${currentProjectId}` : '/api/projects';
+            const method = isEditing ? 'PATCH' : 'POST';
+
+            const res = await fetch(url, {
+                method: method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newProject)
+                body: JSON.stringify(formData)
             });
+
             if (res.ok) {
                 setIsCreateOpen(false);
-                setNewProject({ title: "", description: "", type: "MAJOR", groupName: "", department: "CS", members: [] });
+                resetForm();
                 fetchProjects();
             } else {
-                alert("Failed to create project.");
+                alert(isEditing ? "Failed to update project." : "Failed to create project.");
             }
         } catch (error) {
             console.error(error);
         }
+    }
+
+    const resetForm = () => {
+        // Default to first type if available, otherwise empty string (or keep MAJOR as fallback if types not loaded yet)
+        const defaultType = projectTypes.length > 0 ? projectTypes[0].name : "MAJOR";
+        setFormData({ title: "", description: "", type: defaultType, groupName: "", department: "CS", members: [] });
+        setIsEditing(false);
+        setCurrentProjectId(null);
+    }
+
+    const handleCreate = () => {
+        resetForm();
+        setIsCreateOpen(true);
+    }
+
+    const handleEdit = (project: any) => {
+        const memberIds = project.ProjectGroup?.StudentProfile?.map((s: any) => s.id) || [];
+        setFormData({
+            title: project.title,
+            description: project.description || "",
+            // Fix: Access Type.name, fallback to 'MAJOR'
+            type: project.Type?.name || "MAJOR",
+            groupName: project.ProjectGroup?.name || "",
+            // Use the department of the first student, or default to CS if none
+            department: project.ProjectGroup?.StudentProfile?.[0]?.department || "CS",
+            members: memberIds
+        });
+        setCurrentProjectId(project.id);
+        setIsEditing(true);
+        setIsCreateOpen(true);
     }
 
     async function handleDelete(id: string) {
@@ -102,11 +141,11 @@ export default function ProjectsDirectoryPage() {
     }
 
     const toggleMember = (id: string) => {
-        const current = (newProject as any).members || []
+        const current = formData.members || []
         if (current.includes(id)) {
-            setNewProject({ ...newProject, members: current.filter((m: string) => m !== id) } as any)
+            setFormData({ ...formData, members: current.filter((m: string) => m !== id) })
         } else {
-            setNewProject({ ...newProject, members: [...current, id] } as any)
+            setFormData({ ...formData, members: [...current, id] })
         }
     }
 
@@ -116,7 +155,9 @@ export default function ProjectsDirectoryPage() {
             project.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (project.ProjectGroup?.StudentProfile?.[0]?.User?.fullName || "").toLowerCase().includes(searchTerm.toLowerCase());
 
-        const matchesType = filterType === "ALL" || project.type === filterType;
+        // Check against Type.name for filtering
+        const typeName = project.Type?.name || project.type || "";
+        const matchesType = filterType === "ALL" || typeName === filterType;
         const matchesDept = filterDept === "ALL" || (project.ProjectGroup?.StudentProfile?.[0]?.department || "CS") === filterDept;
 
         return matchesSearch && matchesType && matchesDept;
@@ -146,13 +187,13 @@ export default function ProjectsDirectoryPage() {
                 {/* Header */}
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div className="animate-slide-down">
-                        <h1 className="text-4xl font-bold tracking-tight text-cyan-400 animate-slide-down">
+                        <h1 className="text-4xl font-bold tracking-tight gradient-primary bg-clip-text text-transparent animate-slide-down selection:text-white selection:bg-cyan-500/20">
                             All Projects
                         </h1>
                         <p className="text-muted-foreground mt-2">Manage and monitor academic projects across all departments</p>
                     </div>
                     <Button
-                        onClick={() => setIsCreateOpen(true)}
+                        onClick={handleCreate}
                         className="bg-gradient-primary hover:opacity-90 shadow-lg shadow-cyan-500/30 hover-scale active-press animate-slide-left"
                     >
                         <Plus className="mr-2 h-4 w-4" /> Add New Project
@@ -241,9 +282,16 @@ export default function ProjectsDirectoryPage() {
                             </SelectTrigger>
                             <SelectContent className="glass-card border-white/10">
                                 <SelectItem value="ALL">All Types</SelectItem>
-                                <SelectItem value="MAJOR">Major Project</SelectItem>
-                                <SelectItem value="MINI">Mini Project</SelectItem>
-                                <SelectItem value="RESEARCH">Research</SelectItem>
+                                {projectTypes.map(t => (
+                                    <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>
+                                ))}
+                                {/* Fallbacks if no types yet */}
+                                {projectTypes.length === 0 && (
+                                    <>
+                                        <SelectItem value="MAJOR">Major Project</SelectItem>
+                                        <SelectItem value="MINI">Mini Project</SelectItem>
+                                    </>
+                                )}
                             </SelectContent>
                         </Select>
 
@@ -301,6 +349,11 @@ export default function ProjectsDirectoryPage() {
                                     <p className="text-sm text-muted-foreground line-clamp-2">
                                         {project.description}
                                     </p>
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <Badge variant="outline" className="text-xs">
+                                            {project.Type?.name || project.type || 'N/A'}
+                                        </Badge>
+                                    </div>
 
                                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                         <Users className="h-3 w-3" />
@@ -326,6 +379,14 @@ export default function ProjectsDirectoryPage() {
                                         <Button
                                             size="sm"
                                             variant="outline"
+                                            className="glass-modern border-blue-500/20 hover:bg-blue-500/10 text-blue-400"
+                                            onClick={() => handleEdit(project)}
+                                        >
+                                            <Edit2 className="h-3 w-3" />
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
                                             className="glass-modern border-red-500/20 hover:bg-red-500/10 text-red-400"
                                             onClick={() => handleDelete(project.id)}
                                         >
@@ -339,24 +400,24 @@ export default function ProjectsDirectoryPage() {
                 </div>
             </main>
 
-            {/* Create Project Dialog */}
+            {/* Create/Edit Project Dialog */}
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                 <DialogContent className="glass-modern border-cyan-500/20 max-w-2xl">
                     <DialogHeader>
                         <DialogTitle className="text-2xl text-cyan-400">
-                            Create New Project
+                            {isEditing ? "Edit Project" : "Create New Project"}
                         </DialogTitle>
                         <DialogDescription>
-                            Add a new academic project to the system
+                            {isEditing ? "Update existing project details" : "Add a new academic project to the system"}
                         </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleCreate} className="space-y-4">
+                    <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
                             <Label>Project Title</Label>
                             <Input
                                 className="glass-modern border-cyan-500/20 mt-1"
-                                value={newProject.title}
-                                onChange={(e) => setNewProject({ ...newProject, title: e.target.value })}
+                                value={formData.title}
+                                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                 required
                             />
                         </div>
@@ -365,8 +426,8 @@ export default function ProjectsDirectoryPage() {
                             <Label>Description</Label>
                             <Textarea
                                 className="glass-modern border-cyan-500/20 mt-1"
-                                value={newProject.description}
-                                onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
+                                value={formData.description}
+                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 rows={3}
                                 required
                             />
@@ -375,14 +436,24 @@ export default function ProjectsDirectoryPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <Label>Project Type</Label>
-                                <Select value={newProject.type} onValueChange={(v) => setNewProject({ ...newProject, type: v })}>
+                                <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v })}>
                                     <SelectTrigger className="glass-modern border-cyan-500/20 mt-1">
-                                        <SelectValue />
+                                        <SelectValue placeholder="Select type" />
                                     </SelectTrigger>
                                     <SelectContent className="glass-modern border-cyan-500/20">
-                                        <SelectItem value="MAJOR">Major Project</SelectItem>
-                                        <SelectItem value="MINI">Mini Project</SelectItem>
-                                        <SelectItem value="RESEARCH">Research</SelectItem>
+                                        {projectTypes.length > 0 ? (
+                                            projectTypes.map((type) => (
+                                                <SelectItem key={type.id} value={type.name}>
+                                                    {type.name}
+                                                </SelectItem>
+                                            ))
+                                        ) : (
+                                            <>
+                                                <SelectItem value="MAJOR">Major Project</SelectItem>
+                                                <SelectItem value="MINI">Mini Project</SelectItem>
+                                                <SelectItem value="RESEARCH">Research</SelectItem>
+                                            </>
+                                        )}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -391,8 +462,8 @@ export default function ProjectsDirectoryPage() {
                                 <Label>Group Name</Label>
                                 <Input
                                     className="glass-modern border-cyan-500/20 mt-1"
-                                    value={newProject.groupName}
-                                    onChange={(e) => setNewProject({ ...newProject, groupName: e.target.value })}
+                                    value={formData.groupName}
+                                    onChange={(e) => setFormData({ ...formData, groupName: e.target.value })}
                                     placeholder="Optional"
                                 />
                             </div>
@@ -405,7 +476,7 @@ export default function ProjectsDirectoryPage() {
                                     <label key={student.id} className="flex items-center gap-2 cursor-pointer hover:bg-cyan-500/10 p-2 rounded transition-colors">
                                         <input
                                             type="checkbox"
-                                            checked={(newProject.members as any).includes(student.id)}
+                                            checked={formData.members.includes(student.id)}
                                             onChange={() => toggleMember(student.id)}
                                             className="rounded border-cyan-500/20"
                                         />
@@ -428,7 +499,7 @@ export default function ProjectsDirectoryPage() {
                                 type="submit"
                                 className="flex-1 bg-gradient-primary hover:opacity-90 shadow-lg shadow-cyan-500/30"
                             >
-                                Create Project
+                                {isEditing ? "Update Project" : "Create Project"}
                             </Button>
                         </div>
                     </form>

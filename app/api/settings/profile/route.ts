@@ -2,12 +2,22 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url);
-    const email = searchParams.get('email') || 'admin@spms.edu'; // Default to admin for dev/demo
+    const token = request.headers.get('cookie')?.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+
+    if (!token) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     try {
+        const { verifyJWT } = await import('@/lib/auth');
+        const payload = await verifyJWT(token);
+
+        if (!payload || !payload.email) {
+            return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+        }
+
         const user = await prisma.user.findUnique({
-            where: { email },
+            where: { email: payload.email as string },
             select: { fullName: true, email: true, role: true }
         });
 

@@ -76,7 +76,7 @@ export function AdminTopBar({ title }: { title?: string }) {
             {/* Title */}
             <div className="flex items-center gap-4">
                 {title && (
-                    <h2 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent animate-slide-down hidden md:block">
+                    <h2 className="text-2xl font-bold gradient-primary bg-clip-text text-transparent animate-slide-down hidden md:block selection:text-white selection:bg-cyan-500/20">
                         {title}
                     </h2>
                 )}
