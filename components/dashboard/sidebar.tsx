@@ -23,16 +23,18 @@ const adminNavItems = [
 
 const facultyNavItems = [
     { href: "/dashboard/faculty", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/dashboard/faculty/projects", label: "My Projects", icon: FolderKanban },
-    { href: "/dashboard/faculty/schedule", label: "Schedule", icon: Users }, // Using Users icon as placeholder or Calendar if available
-    { href: "/dashboard/faculty/evaluations", label: "Evaluations", icon: FileText },
+    { href: "/dashboard/faculty/projects", label: "Projects & Grading", icon: FolderKanban },
+    { href: "/dashboard/faculty/meetings", label: "Meetings", icon: Users },
+    { href: "/dashboard/faculty/profile", label: "My Profile", icon: Settings },
 ]
 
 const studentNavItems = [
     { href: "/dashboard/student", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/dashboard/student/project", label: "My Project", icon: FolderKanban },
-    { href: "/dashboard/student/tasks", label: "Tasks", icon: FileText },
-    { href: "/dashboard/student/schedule", label: "Schedule", icon: Users },
+    { href: "/dashboard/student/group", label: "My Group", icon: Users },
+    { href: "/dashboard/student/proposal", label: "Proposal", icon: FileText },
+    { href: "/dashboard/student/project", label: "Project Details", icon: FolderKanban },
+    { href: "/dashboard/student/meetings", label: "Meetings", icon: Users },
+    { href: "/dashboard/student/profile", label: "My Profile", icon: Settings },
 ]
 
 export function Sidebar({ user }: { user?: any }) {

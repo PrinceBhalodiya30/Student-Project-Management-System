@@ -94,6 +94,7 @@ model Project {
   ActivityLog    ActivityLog[]
   ProjectGroup   ProjectGroup    @relation(fields: [groupId], references: [id])
   FacultyProfile FacultyProfile? @relation(fields: [guideId], references: [id], onDelete: SetNull)
+  Grade          Grade[]
 }
 
 model ProjectType {
@@ -123,6 +124,7 @@ model StudentProfile {
   Attendance   MeetingAttendance[]
   StudentTask  StudentTask[]
   isLeader     Boolean       @default(false)
+  Grade        Grade[]
 }
 
 model StudentTask {
@@ -144,7 +146,7 @@ model User {
   avatarUrl      String?
   isActive       Boolean         @default(true)
   createdAt      DateTime        @default(now())
-  updatedAt      DateTime
+  updatedAt      DateTime        @updatedAt
   FacultyProfile FacultyProfile?
   Message        Message[]
   Notification   Notification[]
@@ -161,6 +163,18 @@ model ActivityLog {
   createdAt DateTime @default(now())
   Project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Grade {
+  id        String   @id @default(cuid())
+  studentId String
+  projectId String
+  marks     Float
+  comments  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  Project   Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 enum ProjectStatus {

@@ -1,176 +1,130 @@
-"use client"
-
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { AdminTopBar } from "@/components/admin/admin-topbar"
-import { Card, CardContent } from "@/components/ui/card"
+import { prisma } from "@/lib/prisma"
+import { verifyJWT } from "@/lib/auth"
+import { cookies } from "next/headers"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { FolderKanban, MoreVertical, Loader2, Search, Users, Calendar, ChevronRight } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import Link from "next/link"
+import { FolderKanban, Users, Calendar, ArrowRight, CheckCircle, Clock, XCircle } from "lucide-react"
 
-export default function FacultyProjectsPage() {
-    const router = useRouter();
-    const [projects, setProjects] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [statusFilter, setStatusFilter] = useState("ALL");
-
-    useEffect(() => {
-        const fetchProjects = async () => {
-            try {
-                const res = await fetch('/api/faculty/projects');
-                if (res.ok) {
-                    const data = await res.json();
-                    setProjects(Array.isArray(data) ? data : []);
+async function getFacultyProjects(userId: string) {
+    const faculty = await prisma.facultyProfile.findUnique({
+        where: { userId },
+        include: {
+            Project: {
+                include: {
+                    ProjectGroup: {
+                        include: {
+                            StudentProfile: {
+                                include: {
+                                    User: true
+                                }
+                            }
+                        }
+                    },
+                    _count: {
+                        select: {
+                            Meeting: true,
+                            Milestone: true,
+                            Document: true
+                        }
+                    }
+                },
+                orderBy: {
+                    updatedAt: 'desc'
                 }
-            } catch (err) {
-                console.error("Failed to fetch projects", err);
-            } finally {
-                setLoading(false);
             }
-        };
-        fetchProjects();
-    }, []);
+        }
+    })
+    return faculty?.Project || []
+}
 
-    const filteredProjects = projects.filter(project => {
-        const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            project.description?.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = statusFilter === "ALL" || project.status === statusFilter;
-        return matchesSearch && matchesStatus;
-    });
+export default async function FacultyProjectsPage() {
+    const cookieStore = await cookies()
+    const token = cookieStore.get("token")?.value
+    if (!token) return null
+
+    const payload = await verifyJWT(token)
+    if (!payload) return null
+
+    const projects = await getFacultyProjects(payload.sub as string)
 
     return (
-        <div className="flex flex-col min-h-screen bg-background relative overflow-hidden">
-            {/* Animated Background */}
-            <div className="fixed inset-0 gradient-mesh-modern opacity-20 pointer-events-none" />
-            <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-900/20 via-background to-background pointer-events-none" />
-
-            <div className="glass-modern border-b border-cyan-500/20 sticky top-0 z-30">
-                <AdminTopBar title="My Projects" />
+        <div className="p-6 space-y-6 animate-fade-in text-foreground">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">
+                        My Projects
+                    </h1>
+                    <p className="text-muted-foreground mt-2">
+                        Manage and track student projects under your supervision
+                    </p>
+                </div>
             </div>
 
-            <main className="flex-1 p-6 md:p-8 max-w-[1600px] mx-auto w-full relative z-10">
-                <div className="flex flex-col gap-6 mb-8">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                            <h1 className="text-3xl font-bold gradient-primary bg-clip-text text-transparent selection:text-white selection:bg-cyan-500/20">
-                                My Assigned Projects
-                            </h1>
-                            <p className="text-muted-foreground mt-1">
-                                Manage and track the progress of projects under your guidance.
-                            </p>
-                        </div>
-                        <Button onClick={() => { }} className="bg-cyan-600 hover:bg-cyan-700 shadow-lg shadow-cyan-500/20 hidden">
-                            Export Report
-                        </Button>
-                    </div>
-
-                    {/* Filters */}
-                    <Card className="glass-modern border-cyan-500/20">
-                        <CardContent className="p-4 flex flex-col md:flex-row gap-4">
-                            <div className="relative flex-1">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Search projects..."
-                                    className="pl-10 bg-slate-950/50 border-slate-700 focus:border-cyan-500/50"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
-                            </div>
-                            <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                <SelectTrigger className="w-[180px] bg-slate-950/50 border-slate-700">
-                                    <SelectValue placeholder="Status" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-slate-900 border-slate-700">
-                                    <SelectItem value="ALL">All Status</SelectItem>
-                                    <SelectItem value="PROPOSED">Proposed</SelectItem>
-                                    <SelectItem value="APPROVED">Approved</SelectItem>
-                                    <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                                    <SelectItem value="COMPLETED">Completed</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {loading ? (
-                    <div className="flex justify-center items-center h-64">
-                        <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {projects.length === 0 ? (
+                    <div className="col-span-full text-center py-12">
+                        <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-medium">No projects assigned</h3>
+                        <p className="text-muted-foreground">Projects assigned to you will appear here.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredProjects.map((project, index) => (
-                            <Card
-                                key={project.id}
-                                className="glass-modern border-slate-800 hover:border-cyan-500/30 transition-all hover-scale group cursor-pointer stagger-item"
-                                style={{ animationDelay: `${index * 0.1}s` }}
-                                onClick={() => router.push(`/dashboard/faculty/projects/${project.id}`)}
-                            >
-                                <CardContent className="p-6">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <Badge variant="outline" className={`border-cyan-500/30 text-cyan-400 bg-cyan-500/10`}>
-                                            {project.status.replace('_', ' ')}
-                                        </Badge>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-white">
-                                            <MoreVertical className="h-4 w-4" />
-                                        </Button>
+                    projects.map((project) => (
+                        <Card key={project.id} className="glass-modern border-cyan-500/20 hover:border-cyan-500/40 transition-all hover-scale flex flex-col">
+                            <CardHeader>
+                                <div className="flex justify-between items-start mb-2">
+                                    <Badge variant="outline" className={`
+                                        ${project.status === 'APPROVED' ? 'border-green-500 text-green-500' : ''}
+                                        ${project.status === 'PROPOSED' ? 'border-orange-500 text-orange-500' : ''}
+                                        ${project.status === 'COMPLETED' ? 'border-blue-500 text-blue-500' : ''}
+                                        ${project.status === 'REJECTED' ? 'border-red-500 text-red-500' : ''}
+                                    `}>
+                                        {project.status}
+                                    </Badge>
+                                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        {new Date(project.updatedAt).toLocaleDateString()}
+                                    </span>
+                                </div>
+                                <CardTitle className="line-clamp-1 text-lg">{project.title}</CardTitle>
+                                <CardDescription className="line-clamp-2 mt-2">
+                                    {project.description}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex-1">
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Users className="h-4 w-4 text-cyan-400" />
+                                        <span>{project.ProjectGroup.name} ({project.ProjectGroup.StudentProfile.length} students)</span>
                                     </div>
-                                    <h3 className="text-xl font-bold text-foreground mb-2 group-hover:text-cyan-400 transition-colors line-clamp-1">{project.title}</h3>
-                                    <p className="text-sm text-muted-foreground line-clamp-2 mb-6 h-10">{project.description}</p>
-
-                                    <div className="space-y-4">
-                                        <div>
-                                            <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2 flex items-center gap-2">
-                                                <Users className="h-3 w-3" /> Team
-                                            </p>
-                                            <div className="flex -space-x-2">
-                                                {project.ProjectGroup?.StudentProfile?.slice(0, 4).map((student: any) => (
-                                                    <Avatar key={student.id} className="h-8 w-8 border-2 border-background" title={student.User?.fullName}>
-                                                        <AvatarFallback className="bg-slate-800 text-xs">
-                                                            {student.User?.fullName?.substring(0, 2).toUpperCase()}
-                                                        </AvatarFallback>
-                                                    </Avatar>
-                                                ))}
-                                                {(!project.ProjectGroup?.StudentProfile || project.ProjectGroup.StudentProfile.length === 0) && (
-                                                    <span className="text-sm text-slate-500 italic">No members</span>
-                                                )}
-                                                {(project.ProjectGroup?.StudentProfile?.length || 0) > 4 && (
-                                                    <div className="h-8 w-8 rounded-full bg-slate-800 border-2 border-background flex items-center justify-center text-[10px] text-slate-400">
-                                                        +{project.ProjectGroup.StudentProfile.length - 4}
-                                                    </div>
-                                                )}
-                                            </div>
+                                    <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                                        <div className="p-2 rounded-lg bg-white/5 border border-cyan-500/10">
+                                            <div className="font-bold text-cyan-400">{project._count.Meeting}</div>
+                                            <div className="text-muted-foreground">Meetings</div>
                                         </div>
-                                        <div className="pt-4 border-t border-white/5 flex justify-between items-center">
-                                            <span className="text-xs text-slate-500 flex items-center gap-1">
-                                                <Calendar className="h-3 w-3" />
-                                                {new Date(project.updatedAt).toLocaleDateString()}
-                                            </span>
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 p-0 h-auto font-normal"
-                                            >
-                                                Details <ChevronRight className="ml-1 h-3 w-3" />
-                                            </Button>
+                                        <div className="p-2 rounded-lg bg-white/5 border border-cyan-500/10">
+                                            <div className="font-bold text-purple-400">{project._count.Milestone}</div>
+                                            <div className="text-muted-foreground">Milestones</div>
+                                        </div>
+                                        <div className="p-2 rounded-lg bg-white/5 border border-cyan-500/10">
+                                            <div className="font-bold text-orange-400">{project._count.Document}</div>
+                                            <div className="text-muted-foreground">Docs</div>
                                         </div>
                                     </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                        {filteredProjects.length === 0 && (
-                            <div className="col-span-full text-center py-12 glass-modern rounded-xl border-dashed border-slate-700">
-                                <FolderKanban className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-                                <h3 className="text-lg font-medium text-slate-300">No Projects Found</h3>
-                                <p className="text-slate-500 mt-2">Try adjusting your filters or search query.</p>
-                            </div>
-                        )}
-                    </div>
+                                </div>
+                            </CardContent>
+                            <CardFooter>
+                                <Button asChild className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg shadow-cyan-500/25">
+                                    <Link href={`/dashboard/faculty/projects/${project.id}`}>
+                                        View Details <ArrowRight className="ml-2 h-4 w-4" />
+                                    </Link>
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    ))
                 )}
-            </main>
+            </div>
         </div>
     )
 }

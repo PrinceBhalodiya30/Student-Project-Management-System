@@ -21,7 +21,7 @@ export async function GET(request: Request) {
                     ]
                 },
                 take: 5,
-                select: { id: true, title: true, status: true, type: true }
+                select: { id: true, title: true, status: true, Type: true }
             }),
 
             // Search Staff (Faculty/Admin)
