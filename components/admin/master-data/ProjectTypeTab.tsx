@@ -5,15 +5,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Edit2, Trash2, AlertCircle, Check, Plus } from "lucide-react"
 import { Modal } from "@/components/ui/modal"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { toast } from "sonner"
 
 export function ProjectTypeTab() {
     const [data, setData] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [showModal, setShowModal] = useState(false)
     const [formData, setFormData] = useState<any>({})
-    const [error, setError] = useState<string | null>(null)
-    const [success, setSuccess] = useState<string | null>(null)
 
     useEffect(() => {
         fetchTypes()
@@ -25,6 +23,7 @@ export function ProjectTypeTab() {
             if (res.ok) setData(await res.json())
         } catch (error) {
             console.error(error)
+            toast.error("Failed to load project types")
         } finally {
             setLoading(false)
         }
@@ -36,15 +35,14 @@ export function ProjectTypeTab() {
             const res = await fetch(`/api/project-types?id=${id}`, { method: 'DELETE' })
             if (res.ok) {
                 fetchTypes()
-                setSuccess("Project type deleted successfully")
-                setTimeout(() => setSuccess(null), 3000)
+                toast.success("Project type deleted successfully")
             } else {
                 const json = await res.json()
-                alert(json.error || "Failed to delete project type")
+                toast.error(json.error || "Failed to delete project type")
             }
         } catch (error) {
             console.error(error)
-            alert("Failed to delete project type")
+            toast.error("Failed to delete project type")
         }
     }
 
@@ -52,13 +50,10 @@ export function ProjectTypeTab() {
     const handleEdit = (item: any) => {
         setFormData(item)
         setShowModal(true)
-        setError(null)
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        setError(null)
-        setSuccess(null)
 
         const url = '/api/project-types'
         const method = formData.id ? 'PUT' : 'POST'
@@ -75,26 +70,19 @@ export function ProjectTypeTab() {
             if (res.ok) {
                 setShowModal(false)
                 fetchTypes()
-                setSuccess(formData.id ? "Project type updated" : "Project type created")
-                setTimeout(() => setSuccess(null), 3000)
+                toast.success(formData.id ? "Project type updated" : "Project type created")
             } else {
-                setError(json.error || "Operation failed")
+                toast.error(json.error || "Operation failed")
             }
         } catch (error) {
             console.error(error)
-            setError("An unexpected error occurred")
+            toast.error("An unexpected error occurred")
         }
     }
 
     return (
         <div className="space-y-4">
-            {success && (
-                <Alert className="bg-green-500/10 text-green-400 border-green-500/20">
-                    <Check className="h-4 w-4" />
-                    <AlertTitle>Success</AlertTitle>
-                    <AlertDescription>{success}</AlertDescription>
-                </Alert>
-            )}
+
 
             <div className="flex justify-between">
                 <Input placeholder="Search types..." className="max-w-xs bg-slate-900 border-slate-700" />
@@ -140,13 +128,7 @@ export function ProjectTypeTab() {
 
             <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={formData.id ? 'Edit Project Type' : 'Add Project Type'}>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {error && (
-                        <Alert variant="destructive">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertTitle>Error</AlertTitle>
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                    )}
+
                     <div>
                         <label className="text-sm font-medium text-slate-300">Type Name</label>
                         <Input

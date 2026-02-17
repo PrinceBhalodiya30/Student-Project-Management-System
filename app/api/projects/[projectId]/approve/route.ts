@@ -38,7 +38,7 @@ export async function POST(
         } else if (payload.role === 'FACULTY') {
             // Faculty can only approve if they are the guide
             const facultyProfile = await prisma.facultyProfile.findUnique({
-                where: { userId: payload.id as string }
+                where: { userId: payload.sub as string }
             });
 
             if (!facultyProfile || project.guideId !== facultyProfile.id) {
@@ -65,7 +65,7 @@ export async function POST(
         await prisma.activityLog.create({
             data: {
                 projectId,
-                userId: payload.id as string,
+                userId: payload.sub as string,
                 action: `PROJECT_${newStatus}`,
                 details: `Project status updated to ${newStatus}`
             }

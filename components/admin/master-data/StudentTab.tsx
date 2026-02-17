@@ -7,6 +7,7 @@ import { Edit2, Trash2, UserPlus } from "lucide-react"
 import { Modal } from "@/components/ui/modal"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BulkUpload } from "@/components/admin/bulk-upload"
+import { toast } from "sonner"
 
 export function StudentTab() {
     const [data, setData] = useState<any[]>([])
@@ -63,9 +64,14 @@ export function StudentTab() {
     }
 
     const fetchStudents = async () => {
-        const res = await fetch('/api/students')
-        if (res.ok) setData(await res.json())
-        setLoading(false)
+        try {
+            const res = await fetch('/api/students')
+            if (res.ok) setData(await res.json())
+        } catch (e) {
+            toast.error("Failed to load students")
+        } finally {
+            setLoading(false)
+        }
     }
 
     const handleEdit = (item: any) => {
@@ -85,9 +91,15 @@ export function StudentTab() {
         try {
             // Delete using User ID (which is item.userId from GET)
             const res = await fetch(`/api/students/${id}`, { method: 'DELETE' });
-            if (res.ok) fetchStudents();
+            if (res.ok) {
+                fetchStudents();
+                toast.success("Student deleted successfully")
+            } else {
+                toast.error("Failed to delete student")
+            }
         } catch (error) {
             console.error(error);
+            toast.error("An unexpected error occurred")
         }
     }
 
@@ -113,15 +125,16 @@ export function StudentTab() {
             const json = await res.json();
 
             if (!res.ok) {
-                alert(json.error || "Operation failed"); // Simple alert for now, can be replaced with better UI
+                toast.error(json.error || "Operation failed");
                 return;
             }
 
             fetchStudents()
             setShowModal(false)
+            toast.success(isEditing ? "Student updated successfully" : "Student created successfully")
         } catch (error) {
             console.error(error)
-            alert("An unexpected error occurred");
+            toast.error("An unexpected error occurred");
         }
     }
 

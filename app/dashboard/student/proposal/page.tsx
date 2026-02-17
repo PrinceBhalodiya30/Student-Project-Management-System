@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { redirect } from "next/navigation"
 import { Send } from "lucide-react"
+import { FormWithToast } from "@/components/ui/form-with-toast"
 
 export default async function ProjectProposalPage() {
     const cookieStore = await cookies()
@@ -61,13 +62,17 @@ export default async function ProjectProposalPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form action={async (formData) => {
-                        "use server"
-                        const title = formData.get("title") as string
-                        const description = formData.get("description") as string
-                        const typeId = formData.get("typeId") as string
-                        await submitProjectProposal(payload.sub as string, { title, description, typeId })
-                    }} className="space-y-6">
+                    <FormWithToast
+                        action={async (formData) => {
+                            "use server"
+                            const title = formData.get("title") as string
+                            const description = formData.get("description") as string
+                            const typeId = formData.get("typeId") as string
+                            return await submitProjectProposal(payload.sub as string, { title, description, typeId })
+                        }}
+                        successMessage="Proposal submitted successfully!"
+                        className="space-y-6"
+                    >
                         <div className="space-y-2">
                             <Label htmlFor="title">Project Title</Label>
                             <Input id="title" name="title" placeholder="Enter concise title" required className="bg-white/5 border-cyan-500/20" />
@@ -101,7 +106,7 @@ export default async function ProjectProposalPage() {
                         <Button type="submit" className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white">
                             <Send className="mr-2 h-4 w-4" /> Submit Proposal
                         </Button>
-                    </form>
+                    </FormWithToast>
                 </CardContent>
             </Card>
         </div>

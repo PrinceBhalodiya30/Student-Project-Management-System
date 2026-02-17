@@ -11,6 +11,7 @@ import { createMeeting } from "@/app/actions/faculty"
 import { format } from "date-fns"
 import { Calendar as CalendarIcon, Clock, Plus } from "lucide-react"
 import Link from "next/link"
+import { FormWithToast } from "@/components/ui/form-with-toast"
 
 async function getFacultyMeetings(userId: string) {
     const faculty = await prisma.facultyProfile.findUnique({
@@ -74,13 +75,16 @@ export default async function FacultyMeetingsPage() {
                             <DialogTitle>Schedule New Meeting</DialogTitle>
                             <DialogDescription>Set up a meeting with a project group.</DialogDescription>
                         </DialogHeader>
-                        <form action={async (formData) => {
-                            "use server"
-                            const projectId = formData.get("projectId") as string
-                            const title = formData.get("title") as string
-                            const dateStr = formData.get("date") as string
-                            await createMeeting(projectId, title, new Date(dateStr))
-                        }}>
+                        <FormWithToast
+                            action={async (formData) => {
+                                "use server"
+                                const projectId = formData.get("projectId") as string
+                                const title = formData.get("title") as string
+                                const dateStr = formData.get("date") as string
+                                return await createMeeting(projectId, title, new Date(dateStr))
+                            }}
+                            successMessage="Meeting scheduled successfully"
+                        >
                             <div className="grid gap-4 py-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="projectId">Project Group</Label>
@@ -107,7 +111,7 @@ export default async function FacultyMeetingsPage() {
                             <DialogFooter>
                                 <Button type="submit" className="bg-cyan-600 hover:bg-cyan-700 text-white">Schedule</Button>
                             </DialogFooter>
-                        </form>
+                        </FormWithToast>
                     </DialogContent>
                 </Dialog>
             </div>

@@ -13,11 +13,11 @@ export async function GET(request: Request) {
         }
 
         const payload = await verifyJWT(token);
-        if (!payload || !payload.id) {
+        if (!payload || !payload.sub) {
             return NextResponse.json({ error: "Invalid token" }, { status: 401 });
         }
 
-        const userId = payload.id as string;
+        const userId = payload.sub as string;
 
         // Fetch last 50 messages where user is sender or receiver (if we had receiver)
         // But schema only has senderId. So it's a broadcast chat? 
@@ -70,11 +70,11 @@ export async function POST(request: Request) {
         }
 
         const payload = await verifyJWT(token);
-        if (!payload || !payload.id) {
+        if (!payload || !payload.sub) {
             return NextResponse.json({ error: "Invalid token" }, { status: 401 });
         }
 
-        const userId = payload.id as string;
+        const userId = payload.sub as string;
         const { content } = await request.json();
 
         if (!content || !content.trim()) {

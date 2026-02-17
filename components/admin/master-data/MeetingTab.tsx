@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Calendar, Edit2, Trash2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { toast } from "sonner"
 
 export function MeetingTab() {
     const [data, setData] = useState<any[]>([])
@@ -74,8 +75,18 @@ export function MeetingTab() {
 
     const handleDelete = async (id: string) => {
         if (!confirm("Delete this meeting?")) return;
-        await fetch(`/api/meetings/${id}`, { method: 'DELETE' });
-        fetchData();
+        try {
+            const res = await fetch(`/api/meetings/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                toast.success("Meeting deleted successfully")
+                fetchData();
+            } else {
+                toast.error("Failed to delete meeting")
+            }
+        } catch (error) {
+            console.error(error)
+            toast.error("An unexpected error occurred")
+        }
     }
 
     const fetchData = async () => {
@@ -86,6 +97,7 @@ export function MeetingTab() {
                 setData(mData);
             } else {
                 setData([]);
+                toast.error("Failed to load meetings")
             }
 
             const pRes = await fetch('/api/projects');
@@ -94,9 +106,11 @@ export function MeetingTab() {
                 setProjects(pData);
             } else {
                 setProjects([]);
+                // Optional: toast.error("Failed to load projects") - might be too noisy on init
             }
         } catch (error) {
             console.error("Fetch error:", error);
+            toast.error("Failed to load data")
         }
     };
 
@@ -105,13 +119,25 @@ export function MeetingTab() {
         const url = formData.id ? `/api/meetings/${formData.id}` : '/api/meetings'
         const method = formData.id ? 'PUT' : 'POST'
 
-        await fetch(url, {
-            method: method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData)
-        })
-        setShowModal(false)
-        fetchData()
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            })
+
+            if (res.ok) {
+                toast.success(formData.id ? "Meeting updated successfully" : "Meeting scheduled successfully")
+                setShowModal(false)
+                fetchData()
+            } else {
+                const json = await res.json()
+                toast.error(json.error || "Operation failed")
+            }
+        } catch (error) {
+            console.error(error)
+            toast.error("An unexpected error occurred")
+        }
     }
 
     return (

@@ -32,10 +32,10 @@ export async function GET(
         if (payload.role === 'ADMIN') {
             hasAccess = true;
         } else if (payload.role === 'FACULTY') {
-            const faculty = await prisma.facultyProfile.findUnique({ where: { userId: payload.id as string } });
+            const faculty = await prisma.facultyProfile.findUnique({ where: { userId: payload.sub as string } });
             if (faculty && faculty.id === project.guideId) hasAccess = true;
         } else if (payload.role === 'STUDENT') {
-            const student = await prisma.studentProfile.findUnique({ where: { userId: payload.id as string } });
+            const student = await prisma.studentProfile.findUnique({ where: { userId: payload.sub as string } });
             if (student && student.groupId === project.groupId) hasAccess = true;
         }
 

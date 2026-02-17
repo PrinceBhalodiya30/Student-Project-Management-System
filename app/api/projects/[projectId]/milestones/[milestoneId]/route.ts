@@ -30,7 +30,7 @@ export async function PATCH(
             if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
             const facultyProfile = await prisma.facultyProfile.findUnique({
-                where: { userId: payload.id as string }
+                where: { userId: payload.sub as string }
             });
 
             if (!facultyProfile || project.guideId !== facultyProfile.id) {
@@ -55,7 +55,7 @@ export async function PATCH(
             await prisma.activityLog.create({
                 data: {
                     projectId,
-                    userId: payload.id as string,
+                    userId: payload.sub as string,
                     action: "MILESTONE_COMPLETED",
                     details: `Milestone "${updatedMilestone.title}" marked as completed`
                 }

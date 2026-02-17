@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Users, Crown, Plus, UserPlus } from "lucide-react"
+import { FormWithToast } from "@/components/ui/form-with-toast"
 
 export default async function StudentGroupPage() {
     const cookieStore = await cookies()
@@ -50,11 +51,15 @@ export default async function StudentGroupPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <form action={async (formData) => {
-                            "use server"
-                            const name = formData.get("groupName") as string
-                            await createProjectGroup(payload.sub as string, name)
-                        }} className="space-y-4">
+                        <FormWithToast
+                            action={async (formData) => {
+                                "use server"
+                                const name = formData.get("groupName") as string
+                                return await createProjectGroup(payload.sub as string, name)
+                            }}
+                            successMessage="Group created successfully!"
+                            className="space-y-4"
+                        >
                             <div className="space-y-2">
                                 <Label htmlFor="groupName">Group Name</Label>
                                 <Input id="groupName" name="groupName" placeholder="e.g., The Avengers" required className="bg-white/5 border-cyan-500/20" />
@@ -62,7 +67,7 @@ export default async function StudentGroupPage() {
                             <Button type="submit" className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white">
                                 <Plus className="mr-2 h-4 w-4" /> Create Group
                             </Button>
-                        </form>
+                        </FormWithToast>
                     </CardContent>
                 </Card>
             ) : (
@@ -113,11 +118,15 @@ export default async function StudentGroupPage() {
                                     <CardDescription>Add a student by their ID Number.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <form action={async (formData) => {
-                                        "use server"
-                                        const idNumber = formData.get("idNumber") as string
-                                        await addMemberToGroup(payload.sub as string, idNumber)
-                                    }} className="space-y-4">
+                                    <FormWithToast
+                                        action={async (formData) => {
+                                            "use server"
+                                            const idNumber = formData.get("idNumber") as string
+                                            return await addMemberToGroup(payload.sub as string, idNumber)
+                                        }}
+                                        successMessage="Member added successfully!"
+                                        className="space-y-4"
+                                    >
                                         <div className="space-y-2">
                                             <Label htmlFor="idNumber">Student ID</Label>
                                             <Input id="idNumber" name="idNumber" placeholder="e.g., 2023001" required className="bg-white/5 border-cyan-500/20" />
@@ -125,7 +134,7 @@ export default async function StudentGroupPage() {
                                         <Button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-700 text-white">
                                             Add to Group
                                         </Button>
-                                    </form>
+                                    </FormWithToast>
                                 </CardContent>
                             </Card>
                         )}

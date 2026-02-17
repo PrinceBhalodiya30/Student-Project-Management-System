@@ -14,7 +14,7 @@ export default async function DashboardLayout({
 
     if (token) {
         const payload = await verifyJWT(token)
-        if (payload?.id) {
+        if (payload?.sub) {
             user = await prisma.user.findUnique({
                 where: { id: payload.sub as string },
                 select: {

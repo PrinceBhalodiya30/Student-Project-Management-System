@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { toast } from "sonner"
 
 export default function ProjectsDirectoryPage() {
     const [projects, setProjects] = useState<any[]>([]);
@@ -69,6 +70,7 @@ export default function ProjectsDirectoryPage() {
             }
         } catch (error) {
             console.error("Failed to fetch projects", error);
+            toast.error("Failed to load projects");
         } finally {
             setLoading(false);
         }
@@ -90,11 +92,13 @@ export default function ProjectsDirectoryPage() {
                 setIsCreateOpen(false);
                 resetForm();
                 fetchProjects();
+                toast.success(isEditing ? "Project updated successfully" : "Project created successfully");
             } else {
-                alert(isEditing ? "Failed to update project." : "Failed to create project.");
+                toast.error(isEditing ? "Failed to update project." : "Failed to create project.");
             }
         } catch (error) {
             console.error(error);
+            toast.error("An unexpected error occurred");
         }
     }
 
@@ -134,9 +138,13 @@ export default function ProjectsDirectoryPage() {
             const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
             if (res.ok) {
                 fetchProjects();
+                toast.success("Project deleted successfully");
+            } else {
+                toast.error("Failed to delete project");
             }
         } catch (error) {
             console.error(error);
+            toast.error("An unexpected error occurred");
         }
     }
 

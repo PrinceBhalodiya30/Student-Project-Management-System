@@ -8,7 +8,7 @@ import { Search, Plus, Edit2, Trash2, AlertCircle } from "lucide-react"
 import { Modal } from "@/components/ui/modal"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BulkUpload } from "@/components/admin/bulk-upload"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { toast } from "sonner"
 
 export function StaffTab() {
     const [data, setData] = useState<any[]>([])
@@ -16,8 +16,6 @@ export function StaffTab() {
     const [showModal, setShowModal] = useState(false)
     const [formData, setFormData] = useState<any>({})
     const [isEditing, setIsEditing] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-    const [success, setSuccess] = useState<string | null>(null)
 
     const [departments, setDepartments] = useState<any[]>([])
 
@@ -67,6 +65,7 @@ export function StaffTab() {
             if (res.ok) setData(await res.json())
         } catch (e) {
             console.error(e)
+            toast.error("Failed to load staff")
         } finally {
             setLoading(false)
         }
@@ -83,28 +82,28 @@ export function StaffTab() {
         })
         setIsEditing(true)
         setShowModal(true)
-        setError(null)
     }
 
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this staff member?")) return;
         try {
             const res = await fetch(`/api/staff/${id}`, { method: 'DELETE' });
-            if (res.ok) fetchStaff();
+            if (res.ok) {
+                fetchStaff();
+                toast.success("Staff deleted successfully")
+            }
             else {
                 const json = await res.json();
-                alert(json.error || "Failed to delete");
+                toast.error(json.error || "Failed to delete")
             }
         } catch (error) {
             console.error(error);
-            alert("Failed to delete staff member");
+            toast.error("Failed to delete staff member");
         }
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        setError(null)
-        setSuccess(null)
 
         const url = isEditing ? `/api/staff/${formData.id}` : '/api/staff'
         const method = isEditing ? 'PUT' : 'POST'
@@ -130,25 +129,16 @@ export function StaffTab() {
 
             fetchStaff()
             setShowModal(false)
-            setSuccess(isEditing ? "Staff updated successfully" : "Staff created successfully")
-
-            // Clear success message after 3 seconds
-            setTimeout(() => setSuccess(null), 3000)
+            toast.success(isEditing ? "Staff updated successfully" : "Staff created successfully")
 
         } catch (err: any) {
-            setError(err.message || "Something went wrong")
+            toast.error(err.message || "Something went wrong")
         }
     }
 
     return (
         <div className="space-y-4">
-            {success && (
-                <Alert className="bg-green-500/10 text-green-400 border-green-500/20">
-                    <Check className="h-4 w-4" />
-                    <AlertTitle>Success</AlertTitle>
-                    <AlertDescription>{success}</AlertDescription>
-                </Alert>
-            )}
+
 
             <div className="flex flex-col md:flex-row justify-between gap-4">
                 <div className="flex gap-2 flex-wrap">
@@ -182,7 +172,7 @@ export function StaffTab() {
                 </div>
                 <div className="flex gap-2">
                     <BulkUpload type="faculty" onUploadComplete={fetchStaff} />
-                    <Button onClick={() => { setFormData({}); setIsEditing(false); setShowModal(true); setError(null); }} className="bg-blue-600">Add Staff</Button>
+                    <Button onClick={() => { setFormData({}); setIsEditing(false); setShowModal(true); }} className="bg-blue-600">Add Staff</Button>
                 </div>
             </div>
 
@@ -260,13 +250,7 @@ export function StaffTab() {
 
             <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={isEditing ? "Edit Staff" : "Add Staff"}>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {error && (
-                        <Alert variant="destructive">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertTitle>Error</AlertTitle>
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                    )}
+
                     <div>
                         <label className="text-sm font-medium text-slate-300">Full Name</label>
                         <Input

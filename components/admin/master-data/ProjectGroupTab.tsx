@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Users, Edit2, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 
 export function ProjectGroupTab() {
     const [data, setData] = useState<any[]>([])
@@ -36,13 +37,23 @@ export function ProjectGroupTab() {
 
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure? This will unassign all members from this group.")) return;
-        await fetch(`/api/project-groups/${id}`, { method: 'DELETE' });
-        fetchData();
+        try {
+            const res = await fetch(`/api/project-groups/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                toast.success("Project group deleted successfully");
+                fetchData();
+            } else {
+                toast.error("Failed to delete project group");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("An unexpected error occurred");
+        }
     }
 
     const fetchData = () => {
-        fetch('/api/project-groups').then(r => r.json()).then(setData)
-        fetch('/api/students').then(r => r.json()).then(setStudents)
+        fetch('/api/project-groups').then(r => r.json()).then(setData).catch(() => toast.error("Failed to load groups"))
+        fetch('/api/students').then(r => r.json()).then(setStudents).catch(() => toast.error("Failed to load students"))
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -50,13 +61,25 @@ export function ProjectGroupTab() {
         const url = formData.id ? `/api/project-groups/${formData.id}` : '/api/project-groups'
         const method = formData.id ? 'PUT' : 'POST'
 
-        await fetch(url, {
-            method: method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData)
-        })
-        setShowModal(false)
-        fetchData()
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            })
+
+            if (res.ok) {
+                toast.success(formData.id ? "Project group updated" : "Project group created")
+                setShowModal(false)
+                fetchData()
+            } else {
+                const json = await res.json()
+                toast.error(json.error || "Operation failed")
+            }
+        } catch (error) {
+            console.error(error)
+            toast.error("An unexpected error occurred")
+        }
     }
 
     // Search & Filter State

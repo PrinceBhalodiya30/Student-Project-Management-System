@@ -11,6 +11,7 @@ import { Search, UserPlus, Users, Briefcase, GraduationCap, AlertCircle } from "
 import { AdminTopBar } from "@/components/admin/admin-topbar"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
+import { toast } from "sonner"
 
 export default function AllocationsPage() {
     const [projects, setProjects] = useState<any[]>([])
@@ -32,6 +33,7 @@ export default function AllocationsPage() {
             }
         } catch (error) {
             console.error("Failed to fetch allocations", error)
+            toast.error("Failed to load allocations")
         } finally {
             setLoading(false)
         }
@@ -66,11 +68,13 @@ export default function AllocationsPage() {
                 await fetchData()
                 setIsModalOpen(false)
                 setSelectedProject(null)
+                toast.success("Faculty guide assigned successfully")
             } else {
-                alert("Failed to assign guide")
+                toast.error("Failed to assign guide")
             }
         } catch (error) {
             console.error("Assignment error", error)
+            toast.error("An unexpected error occurred")
         }
     }
 

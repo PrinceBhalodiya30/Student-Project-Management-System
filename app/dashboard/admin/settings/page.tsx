@@ -9,6 +9,7 @@ import { Lock, User, Save, ShieldCheck } from "lucide-react"
 import { useState, useEffect } from "react"
 import { AdminTopBar } from "@/components/admin/admin-topbar"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { toast } from "sonner"
 
 export default function SettingsPage() {
     const [profile, setProfile] = useState<any>({ fullName: '', email: '', bio: 'System Administrator' });
@@ -44,16 +45,17 @@ export default function SettingsPage() {
                     email: profile.email
                 })
             });
-            if (res.ok) alert("Profile updated!");
-            else alert("Failed to update profile");
+            if (res.ok) toast.success("Profile updated successfully");
+            else toast.error("Failed to update profile");
         } catch (e) {
-            alert("Error updating profile");
+            console.error(e);
+            toast.error("Error updating profile");
         }
     }
 
     const handlePasswordUpdate = async () => {
         if (passwordData.newPassword !== passwordData.confirmPassword) {
-            alert("New passwords do not match");
+            toast.error("New passwords do not match");
             return;
         }
 
@@ -70,13 +72,14 @@ export default function SettingsPage() {
 
             const json = await res.json();
             if (res.ok) {
-                alert("Password updated successfully");
+                toast.success("Password updated successfully");
                 setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
             } else {
-                alert(json.error || "Failed to update password");
+                toast.error(json.error || "Failed to update password");
             }
         } catch (e) {
-            alert("Error updating password");
+            console.error(e);
+            toast.error("Error updating password");
         }
     }
 

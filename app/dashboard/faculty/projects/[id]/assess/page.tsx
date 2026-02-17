@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { gradeStudent } from "@/app/actions/faculty"
 import { User, Save } from "lucide-react"
+import { FormWithToast } from "@/components/ui/form-with-toast"
 
 async function getProjectForGrading(id: string) {
     return await prisma.project.findUnique({
@@ -59,12 +60,15 @@ export default async function AssessProjectPage(props: { params: Promise<{ id: s
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <form action={async (formData: FormData) => {
-                                    "use server"
-                                    const marks = parseFloat(formData.get("marks") as string)
-                                    const comments = formData.get("comments") as string
-                                    await gradeStudent(student.id, project.id, marks, comments)
-                                }}>
+                                <FormWithToast
+                                    action={async (formData) => {
+                                        "use server"
+                                        const marks = parseFloat(formData.get("marks") as string)
+                                        const comments = formData.get("comments") as string
+                                        return await gradeStudent(student.id, project.id, marks, comments)
+                                    }}
+                                    successMessage="Grade saved successfully!"
+                                >
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                             <Label htmlFor={`marks-${student.id}`}>Marks (out of 100)</Label>
@@ -96,12 +100,12 @@ export default async function AssessProjectPage(props: { params: Promise<{ id: s
                                             <Save className="mr-2 h-4 w-4" /> Save Grade
                                         </Button>
                                     </div>
-                                </form>
+                                </FormWithToast>
                             </CardContent>
                         </Card>
                     )
                 })}
             </div>
-        </div>
+        </div >
     )
 }
