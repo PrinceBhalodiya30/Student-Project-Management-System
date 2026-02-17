@@ -1,6 +1,7 @@
 "use client"
 
 import { Bell, Search } from "lucide-react"
+import { NotificationCenter } from "@/components/dashboard/notification-center"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -22,10 +23,7 @@ export function TopBar({ title, user }: { title?: string, user?: any }) {
                     />
                 </div>
 
-                <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
-                    <Bell className="h-5 w-5" />
-                    <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-card" />
-                </Button>
+                <NotificationCenter />
 
                 <div className="flex items-center gap-2 border-l border-border pl-4">
                     <div className="text-right hidden md:block">

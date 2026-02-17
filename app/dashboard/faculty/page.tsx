@@ -13,11 +13,13 @@ import {
     Calendar, Folder, AlertCircle, Clock,
     Sparkles, Layers, ListTodo
 } from "lucide-react"
+import { QuickActionCard } from "./quick-action-card"
 
 export default function FacultyDashboard() {
     const router = useRouter();
     const [stats, setStats] = useState<any>(null);
     const [projects, setProjects] = useState<any[]>([]);
+    const [meetings, setMeetings] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -35,6 +37,15 @@ export default function FacultyDashboard() {
                 if (resProjects.ok) {
                     const data = await resProjects.json();
                     setProjects(data);
+                }
+
+                // Fetch Meetings
+                const resMeetings = await fetch('/api/faculty/meetings');
+                if (resMeetings.ok) {
+                    const data = await resMeetings.json();
+                    // Filter for upcoming only
+                    const upcoming = data.filter((m: any) => new Date(m.date) >= new Date());
+                    setMeetings(upcoming);
                 }
 
             } catch (error) {
@@ -77,72 +88,153 @@ export default function FacultyDashboard() {
                 </div>
 
                 {/* Metrics Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-slide-up">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <MetricCard
                         title="Active Projects"
                         value={stats?.activeProjects || 0}
-                        icon={<Folder className="h-5 w-5 text-blue-400" />}
+                        icon={<Folder className="h-6 w-6 text-white" />}
                         gradient="bg-gradient-to-br from-blue-500 to-indigo-600"
+                        delay="0.1s"
                     />
                     <MetricCard
                         title="Meetings Today"
                         value={stats?.meetingsToday || 0}
-                        icon={<Calendar className="h-5 w-5 text-amber-400" />}
+                        icon={<Calendar className="h-6 w-6 text-white" />}
                         gradient="bg-gradient-to-br from-amber-500 to-orange-600"
+                        delay="0.2s"
                     />
                     <MetricCard
                         title="Pending Reviews"
                         value={stats?.pendingReviews || 0}
-                        icon={<ListTodo className="h-5 w-5 text-emerald-400" />}
+                        icon={<ListTodo className="h-6 w-6 text-white" />}
                         gradient="bg-gradient-to-br from-emerald-500 to-teal-600"
+                        delay="0.3s"
+                        onClick={() => router.push('/dashboard/faculty/evaluations')}
                     />
                 </div>
 
-                {/* Content Split */}
+                {/* Main Content Area */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                    {/* Assigned Projects */}
-                    <div className="lg:col-span-2 space-y-6 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-xl font-bold text-foreground">Assigned Projects</h2>
-                            <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/faculty/projects')}>View All</Button>
+                    {/* Left Column: Projects & Activity */}
+                    <div className="lg:col-span-2 space-y-8 animate-slide-up" style={{ animationDelay: '0.4s' }}>
+
+                        {/* Quick Actions */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <QuickActionCard
+                                icon={<Folder className="h-5 w-5" />}
+                                label="View Projects"
+                                onClick={() => router.push('/dashboard/faculty/projects')}
+                                color="blue"
+                            />
+                            <QuickActionCard
+                                icon={<ListTodo className="h-5 w-5" />}
+                                label="Evaluations"
+                                onClick={() => router.push('/dashboard/faculty/evaluations')}
+                                color="emerald"
+                            />
+                            <QuickActionCard
+                                icon={<Calendar className="h-5 w-5" />}
+                                label="Schedule"
+                                onClick={() => router.push('/dashboard/faculty/schedule')}
+                                color="amber"
+                            />
+                            <QuickActionCard
+                                icon={<Layers className="h-5 w-5" />}
+                                label="Resources"
+                                onClick={() => { }} // Placeholder
+                                color="purple"
+                            />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {projects.length === 0 ? (
-                                <div className="col-span-2 p-8 text-center glass-modern rounded-xl border-dashed border-2 border-slate-700">
-                                    <p className="text-muted-foreground">No projects assigned yet.</p>
-                                </div>
-                            ) : (
-                                projects.slice(0, 4).map((project, i) => (
-                                    <ProjectCard key={project.id} project={project} index={i} />
-                                ))
-                            )}
+                        {/* Recent Projects */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-xl font-bold flex items-center gap-2">
+                                    <Sparkles className="h-5 w-5 text-cyan-400" />
+                                    Active Projects
+                                </h2>
+                                <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard/faculty/projects')} className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-950/30">
+                                    View All <Clock className="ml-2 h-3 w-3" />
+                                </Button>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {projects.length === 0 ? (
+                                    <div className="col-span-2 p-12 text-center glass-modern rounded-2xl border-dashed border-2 border-slate-700/50">
+                                        <Folder className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+                                        <p className="text-muted-foreground font-medium">No projects assigned yet.</p>
+                                    </div>
+                                ) : (
+                                    projects.slice(0, 4).map((project, i) => (
+                                        <ProjectCard key={project.id} project={project} index={i} />
+                                    ))
+                                )}
+                            </div>
                         </div>
                     </div>
 
-                    {/* Right Sidebar */}
-                    <div className="space-y-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-                        <Card className="glass-modern border-cyan-500/20">
+                    {/* Right Sidebar: Schedule & Notifications */}
+                    <div className="space-y-6 animate-slide-up" style={{ animationDelay: '0.5s' }}>
+                        <Card className="glass-modern border-cyan-500/20 overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-sm">
-                                    <Clock className="h-4 w-4 text-cyan-400" />
+                                <CardTitle className="flex items-center gap-2 text-base">
+                                    <Calendar className="h-4 w-4 text-cyan-400" />
                                     Upcoming Schedule
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                {stats?.meetingsToday > 0 ? (
-                                    <div className="space-y-4">
-                                        {/* Mock Data - In real app fetch meetings */}
-                                        <div className="p-3 bg-white/5 rounded-lg border-l-2 border-amber-500">
-                                            <p className="text-sm font-semibold">Project Review</p>
-                                            <p className="text-xs text-muted-foreground">Today, 2:00 PM</p>
-                                        </div>
+                                {meetings.length > 0 ? (
+                                    <div className="space-y-1">
+                                        {meetings.slice(0, 4).map((meeting: any) => (
+                                            <div key={meeting.id}
+                                                className="p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-white/5 group"
+                                                onClick={() => router.push('/dashboard/faculty/schedule')}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex flex-col items-center justify-center border border-amber-500/30">
+                                                        <span className="text-[10px] font-bold text-amber-500 uppercase">{new Date(meeting.date).toLocaleString('default', { month: 'short' })}</span>
+                                                        <span className="text-sm font-bold text-amber-400">{new Date(meeting.date).getDate()}</span>
+                                                    </div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="text-sm font-semibold truncate group-hover:text-cyan-400 transition-colors">{meeting.title}</p>
+                                                        <p className="text-xs text-muted-foreground truncate">{meeting.Project?.title}</p>
+                                                    </div>
+                                                    <div className="text-xs font-medium text-slate-500 bg-slate-800/50 px-2 py-1 rounded">
+                                                        {new Date(meeting.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 ) : (
-                                    <p className="text-sm text-muted-foreground">No meetings scheduled for today.</p>
+                                    <div className="text-center py-8">
+                                        <Clock className="h-8 w-8 text-slate-700 mx-auto mb-2" />
+                                        <p className="text-sm text-slate-500">No meetings scheduled.</p>
+                                    </div>
                                 )}
-                                <Button className="w-full mt-4" variant="ghost" size="sm">View Calendar</Button>
+                                <Button className="w-full mt-4 glass-card hover:bg-cyan-500/20 text-cyan-400 border-cyan-500/30" variant="outline" size="sm" onClick={() => router.push('/dashboard/faculty/schedule')}>
+                                    Full Calendar
+                                </Button>
+                            </CardContent>
+                        </Card>
+
+                        {/* Tips Card */}
+                        <Card className="glass-modern border-emerald-500/20 overflow-hidden relative">
+                            <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+                            <CardContent className="p-5">
+                                <div className="flex gap-3">
+                                    <div className="p-2 rounded-lg bg-emerald-500/20 h-fit">
+                                        <Sparkles className="h-5 w-5 text-emerald-400" />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-emerald-400 text-sm mb-1">Pro Tip</h4>
+                                        <p className="text-xs text-slate-400 leading-relaxed">
+                                            Regularly update project statuses to keep students informed of their progress.
+                                        </p>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
                     </div>
@@ -152,18 +244,24 @@ export default function FacultyDashboard() {
     )
 }
 
-function MetricCard({ title, value, icon, gradient }: any) {
+function MetricCard({ title, value, icon, gradient, onClick, delay }: any) {
     return (
-        <Card className="glass-modern border-cyan-500/20 hover-float relative overflow-hidden group">
-            <div className={`absolute top-0 right-0 w-24 h-24 opacity-10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500 ${gradient}`} />
+        <Card
+            className={`glass-modern border-cyan-500/20 hover-float relative overflow-hidden group ${onClick ? 'cursor-pointer' : ''} stagger-item`}
+            style={{ animationDelay: delay }}
+            onClick={onClick}
+        >
+            <div className={`absolute top-0 right-0 w-32 h-32 opacity-10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700 ${gradient}`} />
+            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
             <CardContent className="p-6 relative z-10 flex items-center justify-between">
-                <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
-                    <div className="text-3xl font-bold text-foreground">
+                <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground tracking-wide uppercase">{title}</p>
+                    <div className="text-4xl font-extrabold text-foreground tracking-tight">
                         <AnimatedCounter to={value} />
                     </div>
                 </div>
-                <div className={`p-3 rounded-xl shadow-lg ${gradient}`}>
+                <div className={`p-4 rounded-xl shadow-lg ${gradient} transform group-hover:rotate-12 transition-transform duration-500`}>
                     {icon}
                 </div>
             </CardContent>

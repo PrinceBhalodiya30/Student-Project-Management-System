@@ -137,12 +137,33 @@ export async function PATCH(
             delete body.members; // Remove from project update data
         }
 
+        // Separate fields that belong to Project vs others
+        const { title, description, status, groupName, department, guideId, typeId } = body;
+
+        // Update ProjectGroup name if provided
+        if (groupName) {
+            const project = await prisma.project.findUnique({
+                where: { id: projectId },
+                select: { groupId: true }
+            });
+            if (project?.groupId) {
+                await prisma.projectGroup.update({
+                    where: { id: project.groupId },
+                    data: { name: groupName }
+                });
+            }
+        }
+
+        const updateData: any = { updatedAt: new Date() };
+        if (title) updateData.title = title;
+        if (description) updateData.description = description;
+        if (status) updateData.status = status;
+        if (guideId !== undefined) updateData.guideId = guideId; // Allow setting to null? If so need to handle null explicitly
+        if (body.typeId) updateData.typeId = body.typeId; // already handled above but let's be safe
+
         const updatedProject = await prisma.project.update({
             where: { id: projectId },
-            data: {
-                ...body,
-                updatedAt: new Date()
-            }
+            data: updateData
         });
 
         return NextResponse.json(updatedProject);

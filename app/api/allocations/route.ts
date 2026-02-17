@@ -32,7 +32,6 @@ export async function GET(req: Request) {
                     include: { User: true }
                 }
             },
-            take: 50 // Increase limit
         });
 
         // 2. Fetch Faculty and Calculate Load
@@ -49,13 +48,13 @@ export async function GET(req: Request) {
             id: f.id,
             name: f.User.fullName,
             department: f.department,
-            currentLoad: f.Project.length,
+            load: f.Project.length,
             maxLoad: maxLoad, // Use dynamic maxLoad
             isOverloaded: f.Project.length >= maxLoad
         })).filter(f => !f.isOverloaded); // Only return available faculty
 
         const projects = projectsRaw.map(p => {
-            const leader = p.ProjectGroup?.StudentProfile?.[0];
+            const leader = p.ProjectGroup?.StudentProfile?.find(s => s.isLeader) || p.ProjectGroup?.StudentProfile?.[0];
             return {
                 id: p.id,
                 title: p.title,

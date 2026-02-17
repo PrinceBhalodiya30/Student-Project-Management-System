@@ -35,7 +35,7 @@ const studentNavItems = [
     { href: "/dashboard/student/schedule", label: "Schedule", icon: Users },
 ]
 
-export function Sidebar() {
+export function Sidebar({ user }: { user?: any }) {
     const pathname = usePathname()
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [mounted, setMounted] = useState(false)
@@ -63,7 +63,7 @@ export function Sidebar() {
                                 </Button>
                             </SheetTrigger>
                             <SheetContent side="left" className="p-0 w-72 glass-modern border-r border-cyan-500/20">
-                                <SidebarContent pathname={pathname} onLogout={handleLogout} isMobile />
+                                <SidebarContent pathname={pathname} onLogout={handleLogout} isMobile user={user} />
                             </SheetContent>
                         </Sheet>
                     ) : (
@@ -86,6 +86,7 @@ export function Sidebar() {
                     onLogout={handleLogout}
                     isCollapsed={isCollapsed}
                     onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
+                    user={user}
                 />
             </aside>
         </>
@@ -97,13 +98,15 @@ function SidebarContent({
     onLogout,
     isCollapsed = false,
     onToggleCollapse,
-    isMobile = false
+    isMobile = false,
+    user
 }: {
     pathname: string
     onLogout: () => void
     isCollapsed?: boolean
     onToggleCollapse?: () => void
     isMobile?: boolean
+    user?: any
 }) {
     const isFaculty = pathname.startsWith("/dashboard/faculty")
     const isStudent = pathname.startsWith("/dashboard/student")
@@ -193,15 +196,15 @@ function SidebarContent({
                         <div className="absolute inset-0 bg-gradient-primary rounded-full blur-md opacity-50 group-hover:opacity-75 transition-opacity animate-pulse-slow" />
                         <Avatar className="h-10 w-10 border-2 border-cyan-500/30 relative">
                             <AvatarFallback className="bg-gradient-primary text-white font-bold text-sm">
-                                AD
+                                {user?.fullName?.substring(0, 2).toUpperCase() || "US"}
                             </AvatarFallback>
                         </Avatar>
                     </div>
 
                     {!isCollapsed && (
                         <div className="flex-1 min-w-0 animate-slide-left">
-                            <p className="text-sm font-semibold truncate">Admin</p>
-                            <p className="text-xs text-muted-foreground truncate">admin@spms.edu</p>
+                            <p className="text-sm font-semibold truncate">{user?.fullName || "Loading..."}</p>
+                            <p className="text-xs text-muted-foreground truncate">{user?.email || "..."}</p>
                         </div>
                     )}
 

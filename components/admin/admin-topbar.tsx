@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Search, Bell, User, LogOut, Settings } from "lucide-react"
+import { NotificationCenter } from "@/components/dashboard/notification-center"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -96,72 +97,7 @@ export function AdminTopBar({ title }: { title?: string }) {
                 </div>
 
                 {/* Notifications */}
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button
-                            size="icon"
-                            variant="ghost"
-                            className="relative glass-modern hover-glow-cyan active-press h-10 w-10 rounded-xl"
-                        >
-                            <Bell className="h-5 w-5 text-slate-300" />
-                            {unreadCount > 0 && (
-                                <span className="absolute top-2 right-2 h-2.5 w-2.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
-                            )}
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-80 glass-modern border-cyan-500/20 backdrop-blur-2xl shadow-2xl p-0 mt-2 z-50">
-                        <DropdownMenuLabel className="p-4 border-b border-slate-700/50">
-                            <div className="flex justify-between items-center">
-                                <span className="font-bold text-slate-200">Notifications</span>
-                                {unreadCount > 0 && (
-                                    <Badge variant="secondary" className="bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30">
-                                        {unreadCount} New
-                                    </Badge>
-                                )}
-                            </div>
-                        </DropdownMenuLabel>
-                        <div className="max-h-[300px] overflow-y-auto p-2 space-y-2">
-                            {notifications.length === 0 ? (
-                                <div className="p-4 text-center text-slate-500 text-sm">
-                                    No notifications
-                                </div>
-                            ) : (
-                                notifications.map((n) => (
-                                    <div key={n.id} className={`flex gap-3 p-3 rounded-lg hover:bg-slate-800/50 transition-colors cursor-pointer group ${!n.isRead ? 'bg-slate-800/30' : ''}`}>
-                                        <div className={`h-2 w-2 mt-2 rounded-full shrink-0 ${n.isRead ? 'bg-slate-600' : 'bg-cyan-500'}`} />
-                                        <div className="space-y-1">
-                                            <p className={`text-sm font-medium transition-colors ${n.isRead ? 'text-slate-400' : 'text-slate-200 group-hover:text-cyan-400'}`}>
-                                                {n.title}
-                                            </p>
-                                            <p className="text-xs text-slate-400 line-clamp-2">
-                                                {n.message}
-                                            </p>
-                                            <p className="text-[10px] text-slate-500 mt-1">
-                                                {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                        {unreadCount > 0 && (
-                            <>
-                                <DropdownMenuSeparator className="bg-slate-700/50 m-0" />
-                                <div className="p-2 text-center">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={markAllAsRead}
-                                        disabled={loading}
-                                        className="text-xs text-cyan-400 hover:text-cyan-300 w-full"
-                                    >
-                                        {loading ? "Marking..." : "Mark all as read"}
-                                    </Button>
-                                </div>
-                            </>
-                        )}
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                <NotificationCenter />
 
                 {/* User Menu */}
                 <DropdownMenu>

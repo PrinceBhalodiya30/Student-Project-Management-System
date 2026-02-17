@@ -97,7 +97,7 @@ export default function AllocationsPage() {
                     <div className="flex items-center gap-2">
                         <Badge className="glass-modern border-cyan-500/20 px-4 py-2">
                             <AlertCircle className="h-3 w-3 mr-2" />
-                            {projects.length} Pending
+                            {projects.filter(p => !p.guideId).length} Pending
                         </Badge>
                     </div>
                 </div>
@@ -114,7 +114,7 @@ export default function AllocationsPage() {
                         </CardHeader>
                         <CardContent className="relative z-10">
                             <div className="text-3xl font-bold text-cyan-400">
-                                {projects.length}
+                                {projects.filter(p => !p.guideId).length}
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">Projects awaiting guides</p>
                         </CardContent>
@@ -157,8 +157,8 @@ export default function AllocationsPage() {
                 <Card className="glass-modern border-cyan-500/20">
                     <CardHeader className="flex flex-row items-center justify-between pb-4">
                         <div>
-                            <CardTitle className="text-xl">Unassigned Projects</CardTitle>
-                            <CardDescription>Select a project to assign a faculty guide</CardDescription>
+                            <CardTitle className="text-xl">Manage Allocations</CardTitle>
+                            <CardDescription>View all projects and assign or change faculty guides</CardDescription>
                         </div>
                         <div className="relative w-72">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -185,7 +185,7 @@ export default function AllocationsPage() {
                                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-cyan-500/10 mb-4">
                                     <Briefcase className="h-8 w-8 text-cyan-400" />
                                 </div>
-                                <p className="text-muted-foreground">No unassigned projects found</p>
+                                <p className="text-muted-foreground">No projects found</p>
                             </div>
                         ) : (
                             <div className="space-y-3">
@@ -196,9 +196,20 @@ export default function AllocationsPage() {
                                     >
                                         <div className="flex items-start justify-between gap-4">
                                             <div className="flex-1 min-w-0">
-                                                <h3 className="font-semibold text-lg group-hover:text-cyan-400 transition-colors truncate">
-                                                    {project.title}
-                                                </h3>
+                                                <div className="flex items-center gap-3">
+                                                    <h3 className="font-semibold text-lg group-hover:text-cyan-400 transition-colors truncate">
+                                                        {project.title}
+                                                    </h3>
+                                                    {project.guideId ? (
+                                                        <Badge variant="outline" className="border-emerald-500/20 text-emerald-400 bg-emerald-500/5">
+                                                            Assigned
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="outline" className="border-amber-500/20 text-amber-400 bg-amber-500/5">
+                                                            Unassigned
+                                                        </Badge>
+                                                    )}
+                                                </div>
                                                 <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
                                                     <div className="flex items-center gap-1.5">
                                                         <Users className="h-3.5 w-3.5" />
@@ -214,15 +225,25 @@ export default function AllocationsPage() {
                                                             {project.dept}
                                                         </Badge>
                                                     </div>
+                                                    {project.guideName && project.guideName !== "Unassigned" && (
+                                                        <div className="flex items-center gap-1.5 text-emerald-400/80">
+                                                            <GraduationCap className="h-3.5 w-3.5" />
+                                                            <span>Guide: {project.guideName}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                             <Button
                                                 size="sm"
-                                                className="bg-gradient-to-r bg-gradient-primary hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-cyan-500/30 transition-all duration-300 hover:scale-105"
+                                                variant={project.guideId ? "outline" : "default"}
+                                                className={project.guideId
+                                                    ? "border-cyan-500/20 hover:border-cyan-500/50 hover:bg-cyan-500/10 text-cyan-400"
+                                                    : "bg-gradient-to-r bg-gradient-primary hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-cyan-500/30 transition-all duration-300 hover:scale-105"
+                                                }
                                                 onClick={() => handleOpenAssignModal(project)}
                                             >
                                                 <UserPlus className="h-4 w-4 mr-2" />
-                                                Assign Guide
+                                                {project.guideId ? "Change Guide" : "Assign Guide"}
                                             </Button>
                                         </div>
                                     </div>

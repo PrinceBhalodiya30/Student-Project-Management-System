@@ -121,7 +121,18 @@ model StudentProfile {
   ProjectGroup ProjectGroup? @relation(fields: [groupId], references: [id])
   User         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   Attendance   MeetingAttendance[]
+  StudentTask  StudentTask[]
   isLeader     Boolean       @default(false)
+}
+
+model StudentTask {
+  id        String   @id @default(cuid())
+  studentId String
+  title     String
+  status    String   @default("pending") // pending, completed
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
 }
 
 model User {

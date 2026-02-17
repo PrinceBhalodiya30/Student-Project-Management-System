@@ -23,15 +23,9 @@ export async function middleware(request: NextRequest) {
 
         const payload = await verifyJWT(token);
 
-        if (!payload || (payload.role !== matchedRoute.role && payload.role !== 'ADMIN')) {
-            // Admin can access everything? No, let's keep it strict for now or allow admin override if specs say so.
-            // Usually Admin shouldn't just browse student dashboard as a student unless impersonating.
-            // Sticking to strict role check.
-            if (!payload || payload.role !== matchedRoute.role) {
-                // If logged in but wrong role, maybe redirect to their own dashboard?
-                // For now, redirect to login is safest fallback.
-                return NextResponse.redirect(new URL('/login', request.url));
-            }
+        if (!payload || payload.role !== matchedRoute.role) {
+            // Strict role check: User's role must match the route's required role.
+            return NextResponse.redirect(new URL('/login', request.url));
         }
     }
 

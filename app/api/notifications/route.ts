@@ -1,30 +1,18 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jwtVerify } from "jose";
-
-const SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET || "your-secret-key");
-
-async function getUserFromRequest(req: NextRequest) {
-    const token = req.cookies.get("token")?.value;
-    if (!token) return null;
-    try {
-        const { payload } = await jwtVerify(token, SECRET_KEY);
-        return payload as { userId: string; role: string };
-    } catch {
-        return null;
-    }
-}
+import { verifyJWT } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
-    const user = await getUserFromRequest(req);
+    const token = req.cookies.get("token")?.value;
+    const user = await verifyJWT(token || "");
+
     if (!user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     try {
         const notifications = await prisma.notification.findMany({
-            where: { userId: user.userId },
+            where: { userId: user.sub as string },
             orderBy: { createdAt: 'desc' },
             take: 20 // Limit to recent 20
         });
@@ -37,7 +25,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-    const user = await getUserFromRequest(req);
+    const token = req.cookies.get("token")?.value;
+    const user = await verifyJWT(token || "");
+
     if (!user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -46,7 +36,7 @@ export async function PATCH(req: NextRequest) {
         // Mark all as read for simplicity for now, or accept specific IDs
         await prisma.notification.updateMany({
             where: {
-                userId: user.userId,
+                userId: user.sub as string,
                 isRead: false
             },
             data: { isRead: true }
