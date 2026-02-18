@@ -77,18 +77,7 @@ export default function AdminDashboard() {
         : 0;
 
     return (
-        <div className="flex flex-col min-h-screen bg-background relative overflow-hidden">
-            {/* Animated Background */}
-            <div className="fixed inset-0 gradient-mesh-modern opacity-20 pointer-events-none" />
-            <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-900/20 via-background to-background pointer-events-none" />
-
-            {/* Floating Particles */}
-            <div className="particles">
-                <div className="particle" style={{ width: '100px', height: '100px', top: '10%', left: '10%', animationDelay: '0s' }} />
-                <div className="particle" style={{ width: '150px', height: '150px', top: '60%', right: '10%', animationDelay: '2s' }} />
-                <div className="particle" style={{ width: '80px', height: '80px', bottom: '20%', left: '20%', animationDelay: '4s' }} />
-            </div>
-
+        <div className="flex flex-col min-h-screen bg-transparent relative overflow-hidden">
             {/* TopBar */}
             <div className="glass-modern border-b border-cyan-500/20 sticky top-0 z-30 relative">
                 <AdminTopBar title="Dashboard" />
@@ -189,7 +178,7 @@ export default function AdminDashboard() {
                 {/* Main Content Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Faculty Load */}
-                    <Card className="lg:col-span-2 glass-modern border-cyan-500/20 hover-float animate-slide-up">
+                    <Card className="lg:col-span-2 glass-modern border-cyan-500/20 hover-float">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Users className="h-5 w-5 text-cyan-400" />
@@ -202,7 +191,7 @@ export default function AdminDashboard() {
                     </Card>
 
                     {/* Recent Activity */}
-                    <Card className="glass-modern border-cyan-500/20 hover-float animate-slide-up">
+                    <Card className="glass-modern border-cyan-500/20 hover-float">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Clock className="h-5 w-5 text-cyan-400" />
@@ -216,7 +205,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Quick Actions */}
-                <Card className="glass-modern border-cyan-500/20 hover-float animate-fade-in">
+                <Card className="glass-modern border-cyan-500/20 hover-float">
                     <CardHeader>
                         <CardTitle>Quick Actions</CardTitle>
                     </CardHeader>

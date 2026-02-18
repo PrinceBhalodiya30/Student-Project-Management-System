@@ -86,7 +86,7 @@ export function ProjectTypeTab() {
 
             <div className="flex justify-between">
                 <Input placeholder="Search types..." className="max-w-xs bg-slate-900 border-slate-700" />
-                <Button className="bg-blue-600 gap-2" onClick={() => { setFormData({}); setShowModal(true); setError(null); }}>
+                <Button className="bg-blue-600 gap-2" onClick={() => { setFormData({}); setShowModal(true); }}>
                     <Plus className="h-4 w-4" />
                     Add Type
                 </Button>

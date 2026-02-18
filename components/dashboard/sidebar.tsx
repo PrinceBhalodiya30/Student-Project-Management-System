@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
     LayoutDashboard, FolderKanban, Users, FileText, Settings,
-    Database, ChevronLeft, Menu, LogOut, Sparkles
+    Database, ChevronLeft, Menu, LogOut, Sparkles, CheckSquare
 } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
@@ -31,8 +31,8 @@ const facultyNavItems = [
 const studentNavItems = [
     { href: "/dashboard/student", label: "Dashboard", icon: LayoutDashboard },
     { href: "/dashboard/student/group", label: "My Group", icon: Users },
-    { href: "/dashboard/student/proposal", label: "Proposal", icon: FileText },
-    { href: "/dashboard/student/project", label: "Project Details", icon: FolderKanban },
+    { href: "/dashboard/student/project", label: "Project", icon: FolderKanban },
+    { href: "/dashboard/student/tasks", label: "My Tasks", icon: CheckSquare },
     { href: "/dashboard/student/meetings", label: "Meetings", icon: Users },
     { href: "/dashboard/student/profile", label: "My Profile", icon: Settings },
 ]
@@ -79,7 +79,7 @@ export function Sidebar({ user }: { user?: any }) {
             {/* Desktop Sidebar */}
             <aside
                 className={cn(
-                    "hidden lg:flex flex-col h-screen glass-modern border-r border-cyan-500/20 sticky top-0 transition-all duration-500 ease-smooth animate-slide-right",
+                    "hidden lg:flex flex-col h-screen glass-modern border-r border-cyan-500/20 sticky top-0 transition-all duration-500 ease-smooth",
                     isCollapsed ? "w-20" : "w-64"
                 )}
             >
@@ -152,13 +152,12 @@ function SidebarContent({
                             key={item.href}
                             href={item.href}
                             className={cn(
-                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden stagger-item",
+                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden",
                                 isCollapsed && "justify-center px-3",
                                 isActive
                                     ? "bg-gradient-primary text-white shadow-lg shadow-cyan-500/30"
                                     : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                             )}
-                            style={{ animationDelay: `${index * 0.1}s` }}
                         >
                             {/* Active Indicator */}
                             {isActive && (

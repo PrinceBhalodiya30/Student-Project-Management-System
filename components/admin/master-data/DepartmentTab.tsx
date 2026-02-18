@@ -13,10 +13,16 @@ export function DepartmentTab() {
     const [showModal, setShowModal] = useState(false)
     const [formData, setFormData] = useState<any>({})
     const [isEditing, setIsEditing] = useState(false)
+    const [searchTerm, setSearchTerm] = useState("")
 
     useEffect(() => {
         fetchDepartments()
     }, [])
+
+    const filteredData = data.filter(item =>
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.code && item.code.toLowerCase().includes(searchTerm.toLowerCase()))
+    )
 
     const fetchDepartments = async () => {
         try {
@@ -96,7 +102,12 @@ export function DepartmentTab() {
 
 
             <div className="flex justify-between">
-                <Input placeholder="Search departments..." className="max-w-xs bg-slate-900 border-slate-700" />
+                <Input
+                    placeholder="Search departments..."
+                    className="max-w-xs bg-slate-900 border-slate-700"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
                 <Button onClick={handleAdd} className="bg-blue-600 gap-2">
                     <Plus className="h-4 w-4" />
                     Add Department
@@ -116,12 +127,12 @@ export function DepartmentTab() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800">
-                            {data.length === 0 ? (
+                            {filteredData.length === 0 ? (
                                 <tr>
                                     <td colSpan={3} className="px-4 py-8 text-center text-slate-500">No departments found.</td>
                                 </tr>
                             ) : (
-                                data.map((item) => (
+                                filteredData.map((item) => (
                                     <tr key={item.id} className="hover:bg-slate-800/30">
                                         <td className="px-4 py-3 text-white font-medium">{item.name}</td>
                                         <td className="px-4 py-3 font-mono text-xs">{item.slug || item.code}</td>

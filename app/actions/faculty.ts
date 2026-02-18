@@ -81,42 +81,7 @@ export async function createMeeting(projectId: string, title: string, date: Date
 
 export async function markAttendance(meetingId: string, attendanceData: { studentId: string, isPresent: boolean, remarks?: string }[]) {
     try {
-        // Transaction to update multiple records
-        await prisma.$transaction(
-            attendanceData.map(record =>
-                prisma.meetingAttendance.upsert({
-                    where: {
-                        id: "temp-id-placeholder", // This won't work for upsert without unique compound key or known ID. 
-                        // Better to delete existing and create new, or check if we can use a composite key in schema or just create.
-                        // Actually, let's just create them properly.
-                        // Since we don't have a composite unique key on meetingId + studentId, we should check availability first or just create.
-                        // Schema doesn't enforce unique meetingId + studentId. We should probably just delete old for this meeting and insert new.
-                    },
-                    update: {
-                        isPresent: record.isPresent,
-                        remarks: record.remarks
-                    },
-                    create: {
-                        meetingId,
-                        studentId: record.studentId,
-                        isPresent: record.isPresent,
-                        remarks: record.remarks
-                    }
-                })
-            ).map(p => p) // Wait, upsert needs a unique where. 
-            // The schema for MeetingAttendance is:
-            // id String @id @default(cuid())
-            // meetingId String
-            // studentId String
-            // ...
-            // There is NO unique constraint on (meetingId, studentId).
-            // So we can't use upsert easily without fetching first.
-        )
-        // Alternative approach: Delete all attendance for this meeting and re-insert.
-        // Or specific update if IDs are provided.
-        // For simplicity, let's assume this is a "save" operation.
-
-        // Let's refine the schema later if needed, but for now let's just find and update or create.
+        // Update or create attendance records
         for (const record of attendanceData) {
             const existing = await prisma.meetingAttendance.findFirst({
                 where: {
@@ -155,15 +120,33 @@ export async function markAttendance(meetingId: string, attendanceData: { studen
 
 export async function gradeStudent(studentId: string, projectId: string, marks: number, comments?: string) {
     try {
-        await prisma.grade.create({
-            data: {
+        const existingGrade = await prisma.grade.findFirst({
+            where: {
                 studentId,
-                projectId,
-                marks,
-                comments
+                projectId
             }
         })
+
+        if (existingGrade) {
+            await prisma.grade.update({
+                where: { id: existingGrade.id },
+                data: {
+                    marks,
+                    comments
+                }
+            })
+        } else {
+            await prisma.grade.create({
+                data: {
+                    studentId,
+                    projectId,
+                    marks,
+                    comments
+                }
+            })
+        }
         revalidatePath("/dashboard/faculty/projects")
+        revalidatePath(`/dashboard/faculty/projects/${projectId}/assess`)
         return { success: true }
     } catch (error) {
         console.error("Failed to grade student:", error)
@@ -182,5 +165,24 @@ export async function saveMom(meetingId: string, minutes: string) {
     } catch (error) {
         console.error("Failed to save MoM:", error)
         return { success: false, error: "Failed to save MoM" }
+    }
+}
+
+export async function createMilestone(projectId: string, title: string, deadline: Date) {
+    try {
+        await prisma.milestone.create({
+            data: {
+                id: crypto.randomUUID(),
+                projectId,
+                title,
+                deadline,
+                isCompleted: false
+            }
+        })
+        revalidatePath(`/dashboard/faculty/projects/${projectId}`)
+        return { success: true }
+    } catch (error) {
+        console.error("Failed to create milestone:", error)
+        return { success: false, error: "Failed to create milestone" }
     }
 }

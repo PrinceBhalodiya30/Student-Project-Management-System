@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { revalidatePath } from "next/cache"
 import { Save } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 
 async function getProfile(userId: string) {
     return await prisma.user.findUnique({
@@ -101,7 +102,4 @@ export default async function FacultyProfilePage() {
         </div>
     )
 }
-
-// Helper badge component since I missed importing it
-import { Badge } from "@/components/ui/badge"
 

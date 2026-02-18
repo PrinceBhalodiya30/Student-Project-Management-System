@@ -1,22 +1,33 @@
 import { prisma } from "@/lib/prisma"
 import { verifyJWT } from "@/lib/auth"
 import { cookies } from "next/headers"
-import { uploadDocument } from "@/app/actions/student"
+import { uploadProjectFile, submitProjectProposal, getProjectTypes } from "@/app/actions/student"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { format } from "date-fns"
-import { FileText, Upload, Calendar, CheckSquare, User } from "lucide-react"
+import { FileText, Upload, Calendar, CheckSquare, User, Send, AlertCircle, ArrowRight } from "lucide-react"
 import Link from "next/link"
+import { UploadDialog } from "./upload-dialog"
+import { DeleteFileButton } from "./delete-file-button"
+import { FormWithToast } from "@/components/ui/form-with-toast"
 
-async function getStudentProject(userId: string) {
+export default async function StudentProjectPage() {
+    const cookieStore = await cookies()
+    const token = cookieStore.get("token")?.value
+    if (!token) return null
+
+    const payload = await verifyJWT(token)
+    if (!payload) return null
+
     const student = await prisma.studentProfile.findUnique({
-        where: { userId },
+        where: { userId: payload.sub as string },
         include: {
             ProjectGroup: {
                 include: {
@@ -33,30 +44,28 @@ async function getStudentProject(userId: string) {
             }
         }
     })
-    return student?.ProjectGroup?.Project ? { project: student.ProjectGroup.Project, group: student.ProjectGroup } : null
-}
 
-export default async function StudentProjectPage() {
-    const cookieStore = await cookies()
-    const token = cookieStore.get("token")?.value
-    if (!token) return null
-
-    const payload = await verifyJWT(token)
-    if (!payload) return null
-
-    const data = await getStudentProject(payload.sub as string)
-
-    if (!data) {
+    if (!student?.ProjectGroup) {
         return (
-            <div className="p-6">
-                <Card className="glass-modern border-orange-500/20">
+            <div className="p-6 space-y-6 animate-fade-in text-foreground">
+                <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">
+                    Project Details
+                </h1>
+                <Card className="glass-modern border-orange-500/50 bg-orange-500/5">
                     <CardHeader>
-                        <CardTitle className="text-orange-500">No Project Found</CardTitle>
-                        <CardDescription>You need to join a group and submit a proposal first.</CardDescription>
+                        <CardTitle className="flex items-center gap-2 text-orange-500">
+                            <AlertCircle className="h-5 w-5" />
+                            No Group Found
+                        </CardTitle>
+                        <CardDescription>
+                            You must join or create a group before you can submit a project proposal.
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Button asChild>
-                            <Link href="/dashboard/student/group">Go to Group</Link>
+                        <Button asChild className="bg-orange-500 hover:bg-orange-600 text-white">
+                            <Link href="/dashboard/student/group">
+                                Go to Group Formation <ArrowRight className="ml-2 h-4 w-4" />
+                            </Link>
                         </Button>
                     </CardContent>
                 </Card>
@@ -64,7 +73,97 @@ export default async function StudentProjectPage() {
         )
     }
 
-    const { project, group } = data
+    const project = student.ProjectGroup.Project
+
+    // --- PROPOSAL VIEW (No Project) ---
+    if (!project) {
+        if (!student.isLeader) {
+            return (
+                <div className="p-6 space-y-6 animate-fade-in text-foreground">
+                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">
+                        Project Proposal
+                    </h1>
+                    <Card className="glass-modern border-orange-500/20">
+                        <CardHeader>
+                            <CardTitle className="text-orange-500">Waiting for Proposal</CardTitle>
+                            <CardDescription>
+                                Your group leader has not submitted a project proposal yet. Please ask your leader to submit it.
+                            </CardDescription>
+                        </CardHeader>
+                    </Card>
+                </div>
+            )
+        }
+
+        const projectTypes = await getProjectTypes()
+
+        return (
+            <div className="p-6 space-y-6 animate-fade-in text-foreground">
+                <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">
+                    Submit Project Proposal
+                </h1>
+
+                <Card className="max-w-3xl glass-modern border-cyan-500/20">
+                    <CardHeader>
+                        <CardTitle>Proposal Details</CardTitle>
+                        <CardDescription>
+                            Submit your project idea for faculty approval. Ensuring clarity helps in faster approval.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <FormWithToast
+                            action={async (formData) => {
+                                "use server"
+                                const title = formData.get("title") as string
+                                const description = formData.get("description") as string
+                                const typeId = formData.get("typeId") as string
+                                return await submitProjectProposal(payload.sub as string, { title, description, typeId })
+                            }}
+                            successMessage="Proposal submitted successfully!"
+                            className="space-y-6"
+                        >
+                            <div className="space-y-2">
+                                <Label htmlFor="title">Project Title</Label>
+                                <Input id="title" name="title" placeholder="Enter concise title" required className="bg-white/5 border-cyan-500/20" />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="typeId">Project Area (Domain)</Label>
+                                <Select name="typeId" required>
+                                    <SelectTrigger className="bg-white/5 border-cyan-500/20">
+                                        <SelectValue placeholder="Select domain" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {projectTypes.map(type => (
+                                            <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="description">Description</Label>
+                                <Textarea
+                                    id="description"
+                                    name="description"
+                                    placeholder="Describe the problem, solution, and technologies..."
+                                    required
+                                    className="min-h-[150px] bg-white/5 border-cyan-500/20"
+                                />
+                            </div>
+
+                            <Button type="submit" className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white">
+                                <Send className="mr-2 h-4 w-4" /> Submit Proposal
+                            </Button>
+                        </FormWithToast>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
+
+    // --- DETAILS VIEW (Project Exists) ---
+    const group = student.ProjectGroup
 
     return (
         <div className="p-6 space-y-6 animate-fade-in text-foreground">
@@ -100,107 +199,78 @@ export default async function StudentProjectPage() {
                     </Card>
 
                     <Tabs defaultValue="documents" className="w-full">
-                        <TabsList className="glass-modern border border-cyan-500/20 p-1">
+                        <TabsList className="bg-white/5 border border-cyan-500/20">
                             <TabsTrigger value="documents">Documents</TabsTrigger>
                             <TabsTrigger value="milestones">Milestones</TabsTrigger>
                         </TabsList>
 
-                        <TabsContent value="documents" className="mt-4">
+                        <TabsContent value="documents" className="space-y-4 mt-4">
                             <Card className="glass-modern border-cyan-500/20">
                                 <CardHeader className="flex flex-row items-center justify-between">
                                     <CardTitle className="text-lg">Project Documents</CardTitle>
-                                    <Dialog>
-                                        <DialogTrigger asChild>
-                                            <Button size="sm" className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white">
-                                                <Upload className="mr-2 h-4 w-4" /> Upload
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DialogContent className="glass-modern border-cyan-500/20">
-                                            <DialogHeader>
-                                                <DialogTitle>Upload Document</DialogTitle>
-                                                <DialogDescription>Upload reports, diagrams, or presentations.</DialogDescription>
-                                            </DialogHeader>
-                                            <form action={async (formData) => {
-                                                "use server"
-                                                const name = formData.get("name") as string
-                                                const url = formData.get("url") as string
-                                                const type = formData.get("type") as string
-                                                await uploadDocument(project.id, name, url, type)
-                                            }}>
-                                                <div className="grid gap-4 py-4">
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor="name">Document Name</Label>
-                                                        <Input id="name" name="name" placeholder="e.g., SRS Report" required className="bg-white/5 border-cyan-500/20" />
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor="type">Type</Label>
-                                                        <Select name="type" required>
-                                                            <SelectTrigger className="bg-white/5 border-cyan-500/20">
-                                                                <SelectValue placeholder="Select type" />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="REPORT">Report</SelectItem>
-                                                                <SelectItem value="PRESENTATION">Presentation</SelectItem>
-                                                                <SelectItem value="DIAGRAM">Diagram</SelectItem>
-                                                                <SelectItem value="CODE">Source Code</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor="url">File URL (e.g., Drive/Dropbox)</Label>
-                                                        <Input id="url" name="url" placeholder="https://..." required className="bg-white/5 border-cyan-500/20" />
-                                                    </div>
-                                                </div>
-                                                <DialogFooter>
-                                                    <Button type="submit" className="bg-cyan-600 hover:bg-cyan-700 text-white">Upload</Button>
-                                                </DialogFooter>
-                                            </form>
-                                        </DialogContent>
-                                    </Dialog>
+                                    <UploadDialog userId={payload.sub as string} projectId={project.id} />
                                 </CardHeader>
-                                <CardContent className="space-y-2">
+                                <CardContent>
                                     {project.Document.length === 0 ? (
-                                        <p className="text-muted-foreground text-sm">No documents uploaded yet.</p>
+                                        <p className="text-muted-foreground text-center py-8">No documents uploaded yet.</p>
                                     ) : (
-                                        project.Document.map(doc => (
-                                            <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-cyan-500/10 group hover:border-cyan-500/30 transition-all">
-                                                <div className="flex items-center gap-3">
-                                                    <FileText className="h-5 w-5 text-cyan-400" />
-                                                    <div>
-                                                        <a href={doc.url} target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors font-medium block">
-                                                            {doc.name}
-                                                        </a>
-                                                        <span className="text-xs text-muted-foreground uppercase">{doc.type}</span>
+                                        <div className="space-y-2">
+                                            {project.Document.map(doc => (
+                                                <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-cyan-500/10">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="bg-blue-500/20 p-2 rounded">
+                                                            <FileText className="h-4 w-4 text-blue-400" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-medium">{doc.name}</p>
+                                                            <p className="text-xs text-muted-foreground">{format(new Date(doc.uploadedAt), "MMM d, yyyy")}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Button variant="ghost" size="sm" asChild>
+                                                            <a href={doc.url} target="_blank" rel="noopener noreferrer">View</a>
+                                                        </Button>
+                                                        <DeleteFileButton
+                                                            userId={payload.sub as string}
+                                                            documentId={doc.id}
+                                                            fileName={doc.name}
+                                                        />
                                                     </div>
                                                 </div>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {format(new Date(doc.uploadedAt), "MMM d, yyyy")}
-                                                </span>
-                                            </div>
-                                        ))
+                                            ))}
+                                        </div>
                                     )}
                                 </CardContent>
                             </Card>
                         </TabsContent>
 
-                        <TabsContent value="milestones" className="mt-4">
+                        <TabsContent value="milestones" className="space-y-4 mt-4">
                             <Card className="glass-modern border-cyan-500/20">
                                 <CardHeader>
-                                    <CardTitle>Milestones</CardTitle>
+                                    <CardTitle>Project Milestones</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     {project.Milestone.length === 0 ? (
-                                        <p className="text-muted-foreground">No milestones set by faculty.</p>
+                                        <p className="text-muted-foreground text-center py-8">No milestones defined yet.</p>
                                     ) : (
-                                        project.Milestone.map(m => (
-                                            <div key={m.id} className="flex items-center gap-3 p-3 border-b border-cyan-500/10 last:border-0">
-                                                <CheckSquare className={`h-5 w-5 ${m.isCompleted ? "text-green-500" : "text-muted-foreground"}`} />
-                                                <div className="flex-1">
-                                                    <p className={`font-medium ${m.isCompleted ? "line-through text-muted-foreground" : ""}`}>{m.title}</p>
-                                                    <p className="text-xs text-muted-foreground">Deadline: {format(new Date(m.deadline), "PPP")}</p>
+                                        <div className="space-y-4">
+                                            {project.Milestone.map(milestone => (
+                                                <div key={milestone.id} className="flex items-start gap-4 p-4 rounded-lg bg-white/5 border border-cyan-500/10">
+                                                    <div className={`mt-1 p-1 rounded-full ${milestone.isCompleted ? 'bg-green-500/20 text-green-500' : 'bg-gray-500/20 text-gray-500'}`}>
+                                                        <CheckSquare className="h-4 w-4" />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-semibold">{milestone.title}</h4>
+                                                        <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+                                                            <span>Due: {format(new Date(milestone.deadline), "MMM d, yyyy")}</span>
+                                                            <Badge variant="secondary" className="text-[10px] h-5">
+                                                                {milestone.isCompleted ? 'Completed' : 'Pending'}
+                                                            </Badge>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))
+                                            ))}
+                                        </div>
                                     )}
                                 </CardContent>
                             </Card>
@@ -213,25 +283,51 @@ export default async function StudentProjectPage() {
                         <CardHeader>
                             <CardTitle>Team Members</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            {group.StudentProfile.map(student => (
-                                <div key={student.id} className="flex items-center gap-3 pb-3 border-b border-cyan-500/10 last:border-0 last:pb-0">
-                                    <div className="bg-gradient-secondary p-2 rounded-full">
-                                        <User className="h-4 w-4 text-white" />
+                        <CardContent>
+                            <div className="space-y-4">
+                                {group.StudentProfile.map(member => (
+                                    <div key={member.id} className="flex items-center gap-3">
+                                        <div className="bg-gradient-secondary p-2 rounded-full">
+                                            <User className="h-4 w-4 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-sm">{member.User.fullName}</p>
+                                            <p className="text-xs text-muted-foreground">{member.idNumber}</p>
+                                        </div>
+                                        {member.isLeader && (
+                                            <Badge variant="secondary" className="ml-auto text-xs bg-yellow-500/10 text-yellow-500">Leader</Badge>
+                                        )}
                                     </div>
-                                    <div className="flex-1">
-                                        <p className="font-medium text-sm">{student.User.fullName}</p>
-                                        <p className="text-xs text-muted-foreground">{student.idNumber}</p>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="glass-modern border-cyan-500/20">
+                        <CardHeader>
+                            <CardTitle>Recent Meetings</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                {project.Meeting.slice(0, 3).map(meeting => (
+                                    <div key={meeting.id} className="flex items-center gap-3">
+                                        <div className="bg-purple-500/20 p-2 rounded-lg">
+                                            <Calendar className="h-4 w-4 text-purple-400" />
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-sm">{meeting.title}</p>
+                                            <p className="text-xs text-muted-foreground">{format(new Date(meeting.date), "MMM d, HH:mm")}</p>
+                                        </div>
                                     </div>
-                                    {student.isLeader && (
-                                        <Badge variant="secondary" className="text-[10px]">Leader</Badge>
-                                    )}
-                                </div>
-                            ))}
+                                ))}
+                                {project.Meeting.length === 0 && (
+                                    <p className="text-sm text-muted-foreground text-center">No meetings scheduled.</p>
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
             </div>
-        </div>
+        </div >
     )
 }

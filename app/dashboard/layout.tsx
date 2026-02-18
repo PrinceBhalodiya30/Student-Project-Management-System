@@ -2,6 +2,7 @@ import { Sidebar } from "@/components/dashboard/sidebar"
 import { cookies } from "next/headers"
 import { verifyJWT } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { BackgroundElements } from "@/components/dashboard/background-elements"
 
 export default async function DashboardLayout({
     children,
@@ -27,9 +28,10 @@ export default async function DashboardLayout({
     }
 
     return (
-        <div className="flex min-h-screen bg-background text-foreground">
+        <div className="flex min-h-screen bg-background text-foreground relative overflow-hidden">
+            <BackgroundElements />
             <Sidebar user={user} />
-            <div className="flex flex-1 flex-col">
+            <div className="flex flex-1 flex-col relative z-10">
                 {children}
             </div>
         </div>

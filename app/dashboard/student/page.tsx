@@ -105,20 +105,22 @@ export default async function StudentDashboard() {
                     </Card>
 
                     {/* Pending Tasks Card */}
-                    <Card className="glass-modern border-cyan-500/20 hover:border-cyan-500/40 transition-all">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">Pending Tasks</CardTitle>
-                            <CheckSquare className="h-4 w-4 text-orange-400" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-4xl font-bold text-orange-400 mb-2">
-                                {pendingTasks}
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                tasks require your attention
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <Link href="/dashboard/student/tasks" className="block h-full">
+                        <Card className="glass-modern border-cyan-500/20 hover:border-cyan-500/40 transition-all cursor-pointer h-full">
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Pending Tasks</CardTitle>
+                                <CheckSquare className="h-4 w-4 text-orange-400" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-4xl font-bold text-orange-400 mb-2">
+                                    {pendingTasks}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    tasks require your attention
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </Link>
                 </div>
             )}
 

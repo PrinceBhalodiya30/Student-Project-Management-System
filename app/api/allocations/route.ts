@@ -95,6 +95,23 @@ export async function POST(req: Request) {
             updateData.guideId = guideId; // Assign
         }
 
+        // Check Max Load constraint if assigning a guide
+        if (guideId) {
+            const currentLoad = await prisma.project.count({
+                where: {
+                    guideId: guideId,
+                    status: "IN_PROGRESS"
+                }
+            });
+
+            const MAX_LOAD = 5; // Should be consistent with GET
+            if (currentLoad >= MAX_LOAD) {
+                return NextResponse.json({
+                    error: `Faculty member has reached maximum load (${MAX_LOAD})`
+                }, { status: 400 });
+            }
+        }
+
         const updatedProject = await prisma.project.update({
             where: { id: projectId },
             data: updateData

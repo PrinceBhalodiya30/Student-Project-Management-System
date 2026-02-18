@@ -3,11 +3,15 @@ import { notFound } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Calendar, FileText, CheckCircle, User, MessageSquare } from "lucide-react"
+import { Calendar, FileText, CheckCircle, User, MessageSquare, Plus } from "lucide-react"
 import Link from "next/link"
-import { approveProjectProposal } from "@/app/actions/faculty"
+import { approveProjectProposal, createMilestone } from "@/app/actions/faculty"
 import { format } from "date-fns"
+import { FormWithToast } from "@/components/ui/form-with-toast"
 
 async function getProjectDetails(id: string) {
     const project = await prisma.project.findUnique({
@@ -163,6 +167,65 @@ export default async function ProjectDetailsPage(props: { params: Promise<{ id: 
                                                             View Details
                                                         </Link>
                                                     </Button>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+
+                        <TabsContent value="milestones" className="mt-4">
+                            <Card className="glass-modern border-cyan-500/20">
+                                <CardHeader className="flex flex-row items-center justify-between">
+                                    <CardTitle>Milestones</CardTitle>
+                                    <Dialog>
+                                        <DialogTrigger asChild>
+                                            <Button size="sm" className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white">
+                                                <Plus className="mr-2 h-4 w-4" /> Add Milestone
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="glass-modern border-cyan-500/20">
+                                            <DialogHeader>
+                                                <DialogTitle>Add New Milestone</DialogTitle>
+                                                <DialogDescription>Set a key deliverable and deadline for the project.</DialogDescription>
+                                            </DialogHeader>
+                                            <FormWithToast
+                                                action={async (formData) => {
+                                                    "use server"
+                                                    const title = formData.get("title") as string
+                                                    const dateStr = formData.get("deadline") as string
+                                                    return await createMilestone(project.id, title, new Date(dateStr))
+                                                }}
+                                                successMessage="Milestone created successfully!"
+                                            >
+                                                <div className="grid gap-4 py-4">
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="title">Milestone Title</Label>
+                                                        <Input id="title" name="title" placeholder="e.g., Database Design" required className="bg-white/5 border-cyan-500/20" />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="deadline">Deadline</Label>
+                                                        <Input id="deadline" name="deadline" type="date" required className="bg-white/5 border-cyan-500/20" />
+                                                    </div>
+                                                </div>
+                                                <DialogFooter>
+                                                    <Button type="submit" className="bg-cyan-600 hover:bg-cyan-700 text-white">Add Milestone</Button>
+                                                </DialogFooter>
+                                            </FormWithToast>
+                                        </DialogContent>
+                                    </Dialog>
+                                </CardHeader>
+                                <CardContent>
+                                    {project.Milestone.length === 0 ? (
+                                        <p className="text-muted-foreground">No milestones set yet.</p>
+                                    ) : (
+                                        project.Milestone.map(m => (
+                                            <div key={m.id} className="flex items-center gap-3 p-3 border-b border-cyan-500/10 last:border-0">
+                                                <CheckCircle className={`h-5 w-5 ${m.isCompleted ? "text-green-500" : "text-muted-foreground"}`} />
+                                                <div className="flex-1">
+                                                    <p className={`font-medium ${m.isCompleted ? "line-through text-muted-foreground" : ""}`}>{m.title}</p>
+                                                    <p className="text-xs text-muted-foreground">Deadline: {format(new Date(m.deadline), "PPP")}</p>
                                                 </div>
                                             </div>
                                         ))
