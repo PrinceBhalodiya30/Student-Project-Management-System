@@ -53,7 +53,7 @@ export async function POST(request: Request) {
 
         let userData: any = {
             id: randomUUID(),
-            fullName: name,
+            fullName: name, 
             email,
             password: hashedPassword,
             isActive: isActive,
