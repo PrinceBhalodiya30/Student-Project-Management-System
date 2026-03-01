@@ -5,7 +5,7 @@ import { comparePassword, signJWT } from '@/lib/auth';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { email, password } = body;
+        const { email, password, role } = body;
 
         if (!email || !password) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 });
@@ -25,8 +25,9 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
         }
 
-        // Determine correct role from DB (overriding potentially mismatched requests)
-        // actually user.role is enum, so it's safer.
+        if (role && user.role.toLowerCase() !== role.toLowerCase()) {
+            return NextResponse.json({ error: "Invalid email, password, or role." }, { status: 401 });
+        }
 
         const token = await signJWT({
             sub: user.id,
