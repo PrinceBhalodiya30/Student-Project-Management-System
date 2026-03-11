@@ -14,6 +14,11 @@ export function MeetingTab() {
     const [showModal, setShowModal] = useState(false)
     const [formData, setFormData] = useState<any>({})
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5;
+    const totalPages = Math.ceil(data.length / itemsPerPage);
+    const paginatedData = data.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -68,7 +73,8 @@ export function MeetingTab() {
             id: meeting.id,
             title: meeting.title,
             date: new Date(meeting.date).toISOString().split('T')[0],
-            projectId: meeting.projectId // Uses the field from formatted API response
+            projectId: meeting.projectId,
+            attendanceList: meeting.attendanceList || []
         })
         setShowModal(true)
     }
@@ -147,7 +153,7 @@ export function MeetingTab() {
                 <Button className="bg-blue-600" onClick={() => { setFormData({}); setShowModal(true); }}>Schedule Meeting</Button>
             </div>
             <div className="space-y-2">
-                {data.map(m => (
+                {paginatedData.map(m => (
                     <div key={m.id} className="flex items-center justify-between bg-slate-900 p-4 rounded border border-slate-800 group">
                         <div className="flex items-center gap-4">
                             <div className="h-10 w-10 bg-slate-800 rounded flex items-center justify-center text-slate-400">
@@ -175,6 +181,34 @@ export function MeetingTab() {
                     </div>
                 ))}
             </div>
+
+            {data.length > 0 && (
+                <div className="flex items-center justify-between border-t border-slate-800 pt-4 mt-4">
+                    <span className="text-xs text-slate-500">
+                        Showing {Math.min((currentPage - 1) * itemsPerPage + 1, data.length)} to {Math.min(currentPage * itemsPerPage, data.length)} of {data.length} entries
+                    </span>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 border-slate-700 text-slate-300 hover:bg-slate-800"
+                            onClick={() => setCurrentPage(c => Math.max(1, c - 1))}
+                            disabled={currentPage === 1}
+                        >
+                            Previous
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 border-slate-700 text-slate-300 hover:bg-slate-800"
+                            onClick={() => setCurrentPage(c => Math.min(totalPages, c + 1))}
+                            disabled={currentPage === totalPages || totalPages === 0}
+                        >
+                            Next
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -207,6 +241,32 @@ export function MeetingTab() {
                                     </SelectContent>
                                 </Select>
                             </div>
+
+                            {formData.id && formData.attendanceList && formData.attendanceList.length > 0 && (
+                                <div className="space-y-1 mt-4">
+                                    <label className="text-xs text-slate-400 mb-1 block">Mark Attendance</label>
+                                    <div className="max-h-40 overflow-y-auto border border-slate-700 rounded p-2 space-y-2">
+                                        {formData.attendanceList.map((att: any, idx: number) => (
+                                            <div key={att.id} className="flex items-center gap-2 hover:bg-slate-800/50 p-1 rounded transition-colors">
+                                                <input 
+                                                    type="checkbox"
+                                                    id={`att-${att.id}`}
+                                                    checked={att.isPresent}
+                                                    onChange={e => {
+                                                        const newList = [...formData.attendanceList];
+                                                        newList[idx].isPresent = e.target.checked;
+                                                        setFormData({ ...formData, attendanceList: newList });
+                                                    }}
+                                                    className="rounded border-slate-700 bg-slate-800 w-4 h-4 accent-blue-500"
+                                                />
+                                                <label htmlFor={`att-${att.id}`} className="text-sm text-slate-300 cursor-pointer flex-1">
+                                                    {att.studentName}
+                                                </label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="flex justify-end gap-2 mt-4">
                                 <Button type="button" variant="ghost" onClick={() => setShowModal(false)}>Cancel</Button>

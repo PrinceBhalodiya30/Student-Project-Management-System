@@ -23,7 +23,7 @@ export default async function StudentDashboard() {
     const { project, tasks, pendingTasks, upcomingMeetings, groupId } = stats
 
     return (
-        <div className="p-6 space-y-6 animate-fade-in text-foreground">
+        <div className="p-6 space-y-6 animate-fade-in text-foreground relative z-10 w-full min-h-full flex flex-col">
             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">
                 Student Dashboard
             </h1>

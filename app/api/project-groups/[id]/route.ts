@@ -6,7 +6,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     try {
         const { id } = await params;
         const body = await request.json();
-        const { name, members } = body;
+        const { name, members, projectId } = body;
 
         // Transaction to update group name and members
         const group = await prisma.$transaction(async (tx) => {
@@ -31,6 +31,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
                         data: { groupId: id }
                     });
                 }
+            }
+
+            // 3. Update Project (if provided)
+            if (projectId) {
+                await tx.project.update({
+                    where: { id: projectId },
+                    data: { groupId: id }
+                });
             }
 
             return updatedGroup;

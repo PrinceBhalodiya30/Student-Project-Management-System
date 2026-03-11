@@ -99,7 +99,7 @@ export function PendingApprovals({ approvals: initialApprovals, loading }: { app
                             <TableCell className="text-xs text-muted-foreground font-mono">{item.date}</TableCell>
                             <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-2">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => window.location.href = `/dashboard/admin/projects/${item.id}`}>
                                         <Eye className="h-4 w-4" />
                                     </Button>
                                     <Button

@@ -51,7 +51,7 @@ export async function GET(req: Request) {
             load: f.Project.length,
             maxLoad: maxLoad, // Use dynamic maxLoad
             isOverloaded: f.Project.length >= maxLoad
-        })).filter(f => !f.isOverloaded); // Only return available faculty
+        }));
 
         const projects = projectsRaw.map(p => {
             const leader = p.ProjectGroup?.StudentProfile?.find(s => s.isLeader) || p.ProjectGroup?.StudentProfile?.[0];
@@ -114,8 +114,41 @@ export async function POST(req: Request) {
 
         const updatedProject = await prisma.project.update({
             where: { id: projectId },
-            data: updateData
+            data: updateData,
+            include: {
+                FacultyProfile: true,
+                ProjectGroup: {
+                    include: { StudentProfile: true }
+                }
+            }
         });
+
+        // Trigger Notifications
+        if (updateData.guideId) {
+            const facultyUserId = updatedProject.FacultyProfile?.userId;
+            if (facultyUserId) {
+                await prisma.notification.create({
+                    data: {
+                        id: `NOTIF-${Date.now()}-F`,
+                        userId: facultyUserId,
+                        title: "New Project Assigned",
+                        message: `You have been assigned as the guide for project: ${updatedProject.title}`
+                    }
+                });
+            }
+
+            const studentProfiles = updatedProject.ProjectGroup?.StudentProfile || [];
+            if (studentProfiles.length > 0) {
+                await prisma.notification.createMany({
+                    data: studentProfiles.map((s, idx) => ({
+                        id: `NOTIF-${Date.now()}-S${idx}`,
+                        userId: s.userId,
+                        title: "Guide Assigned",
+                        message: `A faculty guide has been assigned to your project: ${updatedProject.title}`
+                    }))
+                });
+            }
+        }
 
         return NextResponse.json({
             success: true,

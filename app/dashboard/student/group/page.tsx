@@ -35,6 +35,13 @@ export default async function StudentGroupPage() {
 
     if (!student) return <div>Student profile not found. Please contact admin.</div>
 
+    // Fetch students without a group
+    const availableStudents = await prisma.studentProfile.findMany({
+        where: { groupId: null },
+        include: { User: true },
+        orderBy: { User: { fullName: 'asc' } }
+    })
+
     return (
         <div className="p-6 space-y-6 animate-fade-in text-foreground">
             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">
@@ -128,10 +135,28 @@ export default async function StudentGroupPage() {
                                         className="space-y-4"
                                     >
                                         <div className="space-y-2">
-                                            <Label htmlFor="idNumber">Student ID</Label>
-                                            <Input id="idNumber" name="idNumber" placeholder="e.g., 2023001" required className="bg-white/5 border-cyan-500/20" />
+                                            <Label htmlFor="idNumber">Select Student to Add</Label>
+                                            {availableStudents.length === 0 ? (
+                                                <div className="p-3 text-sm text-amber-500 bg-amber-500/10 rounded-md border border-amber-500/20">
+                                                    No available students found without a group.
+                                                </div>
+                                            ) : (
+                                                <select
+                                                    id="idNumber"
+                                                    name="idNumber"
+                                                    required
+                                                    className="flex h-10 w-full items-center justify-between rounded-md border border-cyan-500/20 bg-slate-900 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
+                                                >
+                                                    <option value="" disabled selected hidden>Select a student</option>
+                                                    {availableStudents.map(s => (
+                                                        <option key={s.id} value={s.idNumber}>
+                                                            {s.User.fullName} ({s.idNumber})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            )}
                                         </div>
-                                        <Button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-700 text-white">
+                                        <Button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-700 text-white" disabled={availableStudents.length === 0}>
                                             Add to Group
                                         </Button>
                                     </FormWithToast>

@@ -20,6 +20,7 @@ export async function GET() {
             id: g.id,
             name: g.name,
             projectName: g.Project?.title || "No Project",
+            projectId: g.Project?.id || null,
             members: g.StudentProfile.map(s => s.User.fullName).join(", "),
             memberCount: g.StudentProfile.length
         }));

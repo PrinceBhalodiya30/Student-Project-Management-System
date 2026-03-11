@@ -5,10 +5,13 @@ import { hashPassword } from "@/lib/auth";
 
 export async function GET() {
     try {
-        // Fetch users with role STUDENT and their profile
         const students = await prisma.user.findMany({
             where: { role: 'STUDENT' },
-            include: { StudentProfile: true },
+            include: { 
+                StudentProfile: {
+                    include: { ProjectGroup: true }
+                } 
+            },
             orderBy: { fullName: 'asc' }
         });
 
@@ -21,6 +24,7 @@ export async function GET() {
             department: s.StudentProfile?.department || "N/A",
             batch: s.StudentProfile?.batch || "N/A",
             groupId: s.StudentProfile?.groupId || null,
+            groupName: s.StudentProfile?.ProjectGroup?.name || "Unassigned",
             isActive: s.isActive,
             isLeader: s.StudentProfile?.isLeader || false
         }));

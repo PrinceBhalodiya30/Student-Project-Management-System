@@ -181,7 +181,7 @@ export default function ProjectsDirectoryPage() {
     }
 
     return (
-        <div suppressHydrationWarning className="flex flex-col min-h-screen bg-background relative overflow-hidden">
+        <div suppressHydrationWarning className="flex flex-col relative min-h-full w-full">
             {/* Gradient Background */}
             <div className="fixed inset-0 gradient-mesh-modern opacity-20 pointer-events-none" />
             <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-900/20 via-background to-background pointer-events-none" />

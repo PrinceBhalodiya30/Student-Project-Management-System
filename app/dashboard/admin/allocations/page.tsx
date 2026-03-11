@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, UserPlus, Users, Briefcase, GraduationCap, AlertCircle } from "lucide-react"
+import { Search, UserPlus, Users, Briefcase, GraduationCap, AlertCircle, Sparkles } from "lucide-react"
 import { AdminTopBar } from "@/components/admin/admin-topbar"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
@@ -79,7 +79,7 @@ export default function AllocationsPage() {
     }
 
     return (
-        <div className="flex flex-col min-h-screen bg-background relative overflow-hidden">
+        <div className="flex flex-col relative min-h-full w-full">
             {/* Gradient Background */}
             <div className="fixed inset-0 gradient-mesh-modern opacity-20 pointer-events-none" />
             <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-900/20 via-background to-background pointer-events-none" />
@@ -274,23 +274,45 @@ export default function AllocationsPage() {
                         <div>
                             <label className="text-sm font-medium mb-3 block">Select Faculty Member</label>
                             <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-                                {facultyList.map((faculty) => {
+                                {facultyList
+                                    .slice()
+                                    .sort((a, b) => {
+                                        // 1. Department Match
+                                        const aMatch = a.department === selectedProject?.dept ? 1 : 0;
+                                        const bMatch = b.department === selectedProject?.dept ? 1 : 0;
+                                        if (aMatch !== bMatch) return bMatch - aMatch;
+                                        
+                                        // 2. Load Percentage
+                                        const aLoad = a.load / a.maxLoad;
+                                        const bLoad = b.load / b.maxLoad;
+                                        return aLoad - bLoad;
+                                    })
+                                    .map((faculty) => {
                                     const percentage = (faculty.load / faculty.maxLoad) * 100
                                     const isOverloaded = faculty.load >= faculty.maxLoad
                                     const isSelected = selectedFaculty === faculty.id
+                                    const isDeptMatch = faculty.department === selectedProject?.dept
 
                                     return (
                                         <button
                                             key={faculty.id}
                                             onClick={() => !isOverloaded && setSelectedFaculty(faculty.id)}
                                             disabled={isOverloaded}
-                                            className={`w-full p-4 rounded-xl border-2 transition-all text-left ${isSelected
+                                            className={`w-full p-4 rounded-xl border-2 transition-all text-left relative ${isSelected
                                                 ? 'border-violet-500 bg-cyan-500/10'
                                                 : isOverloaded
                                                     ? 'border-red-500/20 bg-red-500/5 opacity-50 cursor-not-allowed'
                                                     : 'border-cyan-500/20 hover:border-violet-500/40 hover:bg-white/5'
                                                 }`}
                                         >
+                                            {isDeptMatch && !isOverloaded && (
+                                                <div className="absolute top-0 right-0 transform translate-x-2 -translate-y-2">
+                                                    <span className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg shadow-emerald-500/20 flex items-center gap-1">
+                                                        <Sparkles className="w-3 h-3" />
+                                                        Recommended Match
+                                                    </span>
+                                                </div>
+                                            )}
                                             <div className="flex items-start gap-3">
                                                 <Avatar className="h-12 w-12 border-2 border-violet-500/30">
                                                     <AvatarFallback className="bg-gradient-to-br bg-gradient-primary text-white font-semibold">

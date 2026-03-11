@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation"
 import { AdminTopBar } from "@/components/admin/admin-topbar"
 import { FacultyLoad } from "@/components/admin/faculty-load"
 import { RecentActivity } from "@/components/admin/recent-activity"
+import { AcademicTimeline } from "@/components/admin/academic-timeline"
+import { DepartmentDistribution } from "@/components/admin/department-distribution"
 import { AnimatedCounter } from "@/components/ui/animated-counter"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -77,7 +79,7 @@ export default function AdminDashboard() {
         : 0;
 
     return (
-        <div className="flex flex-col min-h-screen bg-transparent relative overflow-hidden">
+        <div className="flex flex-col relative min-h-full w-full">
             {/* TopBar */}
             <div className="glass-modern border-b border-cyan-500/20 sticky top-0 z-30 relative">
                 <AdminTopBar title="Dashboard" />

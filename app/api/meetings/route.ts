@@ -20,7 +20,13 @@ export async function GET() {
             projectId: m.projectId,
             date: m.date,
             attendees: m.Attendance.length,
-            present: m.Attendance.filter(a => a.isPresent).length
+            present: m.Attendance.filter(a => a.isPresent).length,
+            attendanceList: m.Attendance.map(a => ({
+                id: a.id,
+                studentId: a.studentId,
+                isPresent: a.isPresent,
+                studentName: a.Student?.User?.fullName || a.Student?.idNumber || 'Unknown Student'
+            }))
         }));
 
         return NextResponse.json(formatted);
@@ -33,15 +39,32 @@ export async function GET() {
 export async function POST(req: Request) {
     try {
         const body = await req.json();
+
+        // Find members of the project's group
+        const project = await prisma.project.findUnique({
+             where: { id: body.projectId },
+             include: { ProjectGroup: { include: { StudentProfile: true } } }
+        });
+
+        let attendanceData: any[] = [];
+        if (project?.ProjectGroup?.StudentProfile) {
+            attendanceData = project.ProjectGroup.StudentProfile.map(s => ({
+                studentId: s.id,
+                isPresent: false
+            }));
+        }
+
         const meeting = await prisma.meeting.create({
             data: {
                 title: body.title,
                 projectId: body.projectId,
                 date: new Date(body.date),
-                minutes: body.minutes
+                minutes: body.minutes,
+                Attendance: {
+                    create: attendanceData
+                }
             }
         });
-        // Attendance would be added separately or nested if complex
         return NextResponse.json(meeting);
     } catch (error) {
         return NextResponse.json({ error: "Failed to create meeting" }, { status: 500 });

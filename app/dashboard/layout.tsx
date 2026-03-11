@@ -28,12 +28,12 @@ export default async function DashboardLayout({
     }
 
     return (
-        <div className="flex min-h-screen bg-background text-foreground relative overflow-hidden">
+        <div className="flex h-screen w-full bg-background text-foreground relative overflow-hidden">
             <BackgroundElements />
             <Sidebar user={user} />
-            <div className="flex flex-1 flex-col relative z-10">
+            <main className="flex-1 relative z-10 overflow-y-auto h-full w-full">
                 {children}
-            </div>
+            </main>
         </div>
     )
 }

@@ -17,7 +17,7 @@ export default async function FacultyDashboard() {
     if (!stats) return <div>Loading...</div>
 
     return (
-        <div className="p-6 space-y-6 animate-fade-in">
+        <div className="p-6 space-y-6 animate-fade-in relative z-10 w-full min-h-full">
             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">
                 Faculty Dashboard
             </h1>

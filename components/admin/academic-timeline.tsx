@@ -1,26 +1,43 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { CheckCircle2, Circle, Clock } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function AcademicTimeline() {
-    // Mock data for now, ideally fetched from backend
-    const phases = [
-        { name: "Project Proposals", status: "completed", date: "Aug 15" },
-        { name: "Faculty Allocation", status: "completed", date: "Sep 01" },
-        { name: "Mid-Term Review", status: "current", date: "Oct 20", progress: 65 },
-        { name: "Final Submission", status: "upcoming", date: "Dec 15" },
-        { name: "Viva Voce", status: "upcoming", date: "Jan 10" },
-    ]
+    const [data, setData] = useState<any>(null)
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        fetch('/api/academic-calendar')
+            .then(r => r.json())
+            .then(setData)
+            .catch(console.error)
+            .finally(() => setLoading(false))
+    }, [])
+
+    if (loading) {
+        return (
+            <Card className="col-span-full xl:col-span-3 border-border bg-card shadow-sm h-48 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-2 w-full max-w-sm" />
+                </div>
+            </Card>
+        )
+    }
+
+    const phases = data?.phases || []
 
     return (
         <Card className="col-span-full xl:col-span-3 border-border bg-card shadow-sm">
             <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                    <CardTitle className="text-base font-semibold">Academic Year Timeline (2025-2026)</CardTitle>
+                    <CardTitle className="text-base font-semibold">Academic Year Timeline ({data?.academicYear})</CardTitle>
                     <span className="text-xs font-medium text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded">
-                        Semester 1: Active
+                        {data?.semester || "Semester 1 Active"}
                     </span>
                 </div>
             </CardHeader>
@@ -29,7 +46,7 @@ export function AcademicTimeline() {
                     {/* Progress Bar Background (Simpler approach for visuals) */}
                     <div className="absolute top-9 left-0 w-full h-1 bg-muted -z-10 hidden sm:block" />
 
-                    {phases.map((phase, index) => (
+                    {phases.map((phase: any, index: number) => (
                         <div key={index} className="flex flex-col items-center relative z-10 group cursor-default">
                             <div className={`
                                 w-10 h-10 rounded-full flex items-center justify-center border-4 transition-all duration-300

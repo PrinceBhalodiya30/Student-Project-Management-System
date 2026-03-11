@@ -118,11 +118,11 @@ export function AdminTopBar({ title }: { title?: string }) {
                             </div>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator className="bg-slate-700/50" />
-                        <DropdownMenuItem className="hover:bg-cyan-500/10 focus:bg-cyan-500/10 cursor-pointer text-slate-300 focus:text-cyan-400">
+                        <DropdownMenuItem className="hover:bg-cyan-500/10 focus:bg-cyan-500/10 cursor-pointer text-slate-300 focus:text-cyan-400" onClick={() => window.location.href = '/dashboard/admin/settings'}>
                             <User className="mr-2 h-4 w-4" />
                             <span>Profile</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="hover:bg-cyan-500/10 focus:bg-cyan-500/10 cursor-pointer text-slate-300 focus:text-cyan-400">
+                        <DropdownMenuItem className="hover:bg-cyan-500/10 focus:bg-cyan-500/10 cursor-pointer text-slate-300 focus:text-cyan-400" onClick={() => window.location.href = '/dashboard/admin/settings'}>
                             <Settings className="mr-2 h-4 w-4" />
                             <span>Settings</span>
                         </DropdownMenuItem>

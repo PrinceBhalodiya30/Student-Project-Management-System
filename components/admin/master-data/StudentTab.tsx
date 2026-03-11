@@ -181,13 +181,14 @@ export function StudentTab() {
                                 <th className="px-4 py-3">ID Number</th>
                                 <th className="px-4 py-3">Department</th>
                                 <th className="px-4 py-3">Batch</th>
+                                <th className="px-4 py-3">Group</th>
                                 <th className="px-4 py-3 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800">
                             {paginatedData.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-4 py-8 text-center text-slate-500">No students found matching filters.</td>
+                                    <td colSpan={6} className="px-4 py-8 text-center text-slate-500">No students found matching filters.</td>
                                 </tr>
                             ) : (
                                 paginatedData.map((item) => (
@@ -200,6 +201,15 @@ export function StudentTab() {
                                         <td className="px-4 py-3 font-mono text-xs">{item.idNumber}</td>
                                         <td className="px-4 py-3">{item.department}</td>
                                         <td className="px-4 py-3">{item.batch}</td>
+                                        <td className="px-4 py-3">
+                                            {item.groupName !== "Unassigned" ? (
+                                                <span className="text-cyan-400 text-xs font-medium bg-cyan-500/10 px-2 py-1 rounded inline-block">
+                                                    {item.groupName}
+                                                </span>
+                                            ) : (
+                                                <span className="text-slate-500 text-xs italic">Unassigned</span>
+                                            )}
+                                        </td>
                                         <td className="px-4 py-3 text-right">
                                             <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
                                                 <Edit2 className="h-4 w-4" />

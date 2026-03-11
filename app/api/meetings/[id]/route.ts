@@ -6,7 +6,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     try {
         const { id } = await params;
         const body = await request.json();
-        const { title, date, projectId } = body;
+        const { title, date, projectId, attendanceList } = body;
 
         const meeting = await prisma.meeting.update({
             where: { id },
@@ -16,6 +16,17 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
                 projectId // Assumes re-assigning project is allowed
             }
         });
+
+        if (attendanceList && Array.isArray(attendanceList)) {
+            for (const att of attendanceList) {
+                if (att.id) {
+                    await prisma.meetingAttendance.update({
+                        where: { id: att.id },
+                        data: { isPresent: att.isPresent }
+                    });
+                }
+            }
+        }
 
         return NextResponse.json(meeting);
     } catch (error) {

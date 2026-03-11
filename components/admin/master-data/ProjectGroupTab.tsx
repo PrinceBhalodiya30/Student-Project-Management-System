@@ -5,19 +5,23 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Users, Edit2, Trash2 } from "lucide-react"
 import { toast } from "sonner"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export function ProjectGroupTab() {
     const [data, setData] = useState<any[]>([])
 
     const [students, setStudents] = useState<any[]>([])
+    const [projects, setProjects] = useState<any[]>([])
 
     useEffect(() => {
         fetch('/api/project-groups').then(r => r.json()).then(setData)
         fetch('/api/students').then(r => r.json()).then(setStudents)
+        fetch('/api/projects').then(r => r.json()).then(setProjects)
     }, [])
 
     const [showModal, setShowModal] = useState(false)
     const [formData, setFormData] = useState<any>({})
+    const [memberSearch, setMemberSearch] = useState("")
 
     const handleEdit = (group: any) => {
         // Find students currently in this group
@@ -31,7 +35,7 @@ export function ProjectGroupTab() {
             .filter(s => s.groupId === group.id)
             .map(s => s.id)
 
-        setFormData({ name: group.name, id: group.id, members: currentMemberIds })
+        setFormData({ name: group.name, id: group.id, members: currentMemberIds, projectId: group.projectId || '' })
         setShowModal(true)
     }
 
@@ -181,15 +185,39 @@ export function ProjectGroupTab() {
                             <Input placeholder="Group Name" className="bg-slate-800 border-slate-700"
                                 value={formData.name || ''} onChange={e => setFormData({ ...formData, name: e.target.value })} required />
 
+                            <div className="space-y-1">
+                                <label className="text-sm text-slate-400 mb-1 block">Project Link (Optional)</label>
+                                <Select
+                                    value={formData.projectId || ''}
+                                    onValueChange={(val) => setFormData({ ...formData, projectId: val })}
+                                >
+                                    <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-100">
+                                        <SelectValue placeholder="Select Project" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-slate-800 border-slate-700 text-slate-100">
+                                        {projects.map(p => (
+                                            <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center mb-1">
                                     <label className="text-sm text-slate-400">Assign Members</label>
                                     <span className="text-xs text-slate-500">
-                                        Showing {students.length} / {students.length}
+                                        Showing {students.filter(s => s.name?.toLowerCase().includes(memberSearch.toLowerCase()) || s.idNumber?.toLowerCase().includes(memberSearch.toLowerCase())).length} / {students.length}
                                     </span>
                                 </div>
+                                <Input 
+                                    placeholder="Search students..." 
+                                    className="bg-slate-800 border-slate-700 h-8 mb-2 text-sm"
+                                    value={memberSearch}
+                                    onChange={(e) => setMemberSearch(e.target.value)}
+                                />
                                 <div className="max-h-48 overflow-y-auto border border-slate-700 rounded p-2 space-y-1">
                                     {students
+                                        .filter(s => s.name?.toLowerCase().includes(memberSearch.toLowerCase()) || s.idNumber?.toLowerCase().includes(memberSearch.toLowerCase()))
                                         .map(student => {
                                             const assignedGroup = student.groupId && student.groupId !== formData.id
                                                 ? data.find((g: any) => g.id === student.groupId)
@@ -223,8 +251,8 @@ export function ProjectGroupTab() {
                                                 </div>
                                             )
                                         })}
-                                    {students.length === 0 && (
-                                        <p className="text-xs text-slate-500">No students found.</p>
+                                    {students.filter(s => s.name?.toLowerCase().includes(memberSearch.toLowerCase()) || s.idNumber?.toLowerCase().includes(memberSearch.toLowerCase())).length === 0 && (
+                                        <p className="text-xs text-slate-500 pb-1">No students found matching your search.</p>
                                     )}
                                 </div>
                             </div>

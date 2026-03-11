@@ -13,6 +13,20 @@ export function ProjectTypeTab() {
     const [showModal, setShowModal] = useState(false)
     const [formData, setFormData] = useState<any>({})
 
+    const [searchTerm, setSearchTerm] = useState("")
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 8
+
+    const filteredData = data.filter(item =>
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    )
+
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage)
+    const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+
+    useEffect(() => setCurrentPage(1), [searchTerm])
+
     useEffect(() => {
         fetchTypes()
     }, [])
@@ -85,7 +99,12 @@ export function ProjectTypeTab() {
 
 
             <div className="flex justify-between">
-                <Input placeholder="Search types..." className="max-w-xs bg-slate-900 border-slate-700" />
+                <Input 
+                    placeholder="Search types..." 
+                    className="max-w-xs bg-slate-900 border-slate-700" 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
                 <Button className="bg-blue-600 gap-2" onClick={() => { setFormData({}); setShowModal(true); }}>
                     <Plus className="h-4 w-4" />
                     Add Type
@@ -102,12 +121,12 @@ export function ProjectTypeTab() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800">
-                        {data.length === 0 ? (
+                        {paginatedData.length === 0 ? (
                             <tr>
                                 <td colSpan={3} className="px-4 py-8 text-center text-slate-500">No project types found.</td>
                             </tr>
                         ) : (
-                            data.map((item) => (
+                            paginatedData.map((item) => (
                                 <tr key={item.id} className="hover:bg-slate-800/30">
                                     <td className="px-4 py-3 text-white font-medium">{item.name}</td>
                                     <td className="px-4 py-3">{item.description || "-"}</td>
@@ -125,6 +144,35 @@ export function ProjectTypeTab() {
                     </tbody>
                 </table>
             </div>
+
+            {/* Pagination Controls */}
+            {filteredData.length > 0 && (
+                <div className="flex items-center justify-between border-t border-slate-800 pt-4">
+                    <span className="text-xs text-slate-500">
+                        Showing {Math.min((currentPage - 1) * itemsPerPage + 1, filteredData.length)} to {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length} entries
+                    </span>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 border-slate-700 text-slate-300 hover:bg-slate-800"
+                            onClick={() => setCurrentPage(c => Math.max(1, c - 1))}
+                            disabled={currentPage === 1}
+                        >
+                            Previous
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 border-slate-700 text-slate-300 hover:bg-slate-800"
+                            onClick={() => setCurrentPage(c => Math.min(totalPages, c + 1))}
+                            disabled={currentPage === totalPages || totalPages === 0}
+                        >
+                            Next
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={formData.id ? 'Edit Project Type' : 'Add Project Type'}>
                 <form onSubmit={handleSubmit} className="space-y-4">
