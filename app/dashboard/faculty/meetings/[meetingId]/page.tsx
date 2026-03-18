@@ -5,10 +5,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
 import { saveMom, markAttendance } from "@/app/actions/faculty" // Assuming markAttendance is exported
 import { format } from "date-fns"
-import { Clock, Users, Save, FileText } from "lucide-react"
+import { Clock, Users, Save, FileText, Plus } from "lucide-react"
 
 // Create markAttendance action if not exists in previous step, I added it in actions/faculty.ts so it should be fine.
 
@@ -26,7 +25,8 @@ async function getMeetingDetails(id: string) {
                                 }
                             }
                         }
-                    }
+                    },
+                    Document: true
                 }
             },
             Attendance: true
@@ -51,7 +51,7 @@ export default async function MeetingDetailsPage(props: { params: Promise<{ meet
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6">
                 {/* Minutes of Meeting */}
                 <Card className="glass-modern border-cyan-500/20">
                     <CardHeader>
@@ -69,7 +69,7 @@ export default async function MeetingDetailsPage(props: { params: Promise<{ meet
                         }}>
                             <Textarea
                                 name="minutes"
-                                className="min-h-[200px] bg-white/5 border-cyan-500/20 mb-4"
+                                className="min-h-[300px] bg-white/5 border-cyan-500/20 mb-4"
                                 placeholder="Enter meeting minutes..."
                                 defaultValue={meeting.minutes || ""}
                             />
@@ -79,62 +79,36 @@ export default async function MeetingDetailsPage(props: { params: Promise<{ meet
                         </form>
                     </CardContent>
                 </Card>
+            </div>
 
-                {/* Attendance */}
+            {/* Photo Attachments (The "Photo Screen") */}
+            {meeting.Project.Document.filter(doc => /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(doc.url)).length > 0 && (
                 <Card className="glass-modern border-cyan-500/20">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <Users className="h-5 w-5 text-purple-400" />
-                            Attendance
+                            <Plus className="h-5 w-5 text-emerald-400" />
+                            Photo Attachments
                         </CardTitle>
-                        <CardDescription>Mark student attendance for this meeting.</CardDescription>
+                        <CardDescription>Visual references and project photos.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <form action={async (formData) => {
-                            "use server"
-                            // Collect data
-                            const attendanceData = meeting.Project.ProjectGroup.StudentProfile.map(student => {
-                                const isPresent = formData.get(`present-${student.id}`) === "on"
-                                const remarks = formData.get(`remarks-${student.id}`) as string
-                                return { studentId: student.id, isPresent, remarks }
-                            })
-
-                            await markAttendance(meeting.id, attendanceData)
-                        }}>
-                            <div className="space-y-6">
-                                {meeting.Project.ProjectGroup.StudentProfile.map(student => {
-                                    const record = meeting.Attendance.find(a => a.studentId === student.id)
-                                    return (
-                                        <div key={student.id} className="flex items-start gap-4 p-4 rounded-lg bg-white/5 border border-cyan-500/10">
-                                            <Checkbox
-                                                id={`present-${student.id}`}
-                                                name={`present-${student.id}`}
-                                                defaultChecked={record ? record.isPresent : true}
-                                                className="mt-1 data-[state=checked]:bg-cyan-500 border-cyan-500/50"
-                                            />
-                                            <div className="flex-1 space-y-2">
-                                                <Label htmlFor={`present-${student.id}`} className="font-medium text-base cursor-pointer">
-                                                    {student.User.fullName}
-                                                </Label>
-                                                <div className="text-xs text-muted-foreground">{student.idNumber}</div>
-                                                <Input
-                                                    name={`remarks-${student.id}`}
-                                                    placeholder="Remarks (optional)"
-                                                    defaultValue={record?.remarks || ""}
-                                                    className="h-8 text-xs bg-black/20 border-cyan-500/20"
-                                                />
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                            <Button type="submit" className="w-full mt-6 bg-gradient-to-r from-purple-500 to-pink-500 text-white">
-                                <Save className="mr-2 h-4 w-4" /> Save Attendance
-                            </Button>
-                        </form>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {meeting.Project.Document.filter(doc => /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(doc.url)).map(doc => (
+                                <div key={doc.id} className="group relative aspect-square rounded-xl overflow-hidden border border-cyan-500/20 hover:border-cyan-500/50 transition-all cursor-zoom-in" onClick={() => window.open(doc.url, '_blank')}>
+                                    <img 
+                                        src={doc.url} 
+                                        alt={doc.name} 
+                                        className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-end">
+                                        <p className="text-xs font-medium text-white truncate">{doc.name}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </CardContent>
                 </Card>
-            </div>
+            )}
         </div>
     )
 }

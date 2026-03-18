@@ -7,9 +7,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Calendar, FileText, CheckCircle, User, MessageSquare, Plus } from "lucide-react"
+import { Calendar, FileText, CheckCircle, User, MessageSquare, Plus, Bell, Trash2 } from "lucide-react"
 import Link from "next/link"
-import { approveProjectProposal, createMilestone } from "@/app/actions/faculty"
+import { approveProjectProposal, createMilestone, postAnnouncement, deleteAnnouncement } from "@/app/actions/faculty"
 import { format } from "date-fns"
 import { FormWithToast } from "@/components/ui/form-with-toast"
 
@@ -34,7 +34,10 @@ async function getProjectDetails(id: string) {
             Meeting: {
                 orderBy: { date: 'desc' }
             },
-            Milestone: true
+            Milestone: true,
+            Announcement: {
+                orderBy: { createdAt: 'desc' }
+            }
         }
     })
     return project
@@ -109,6 +112,7 @@ export default async function ProjectDetailsPage(props: { params: Promise<{ id: 
                             <TabsTrigger value="documents">Documents</TabsTrigger>
                             <TabsTrigger value="meetings">Meetings</TabsTrigger>
                             <TabsTrigger value="milestones">Milestones</TabsTrigger>
+                            <TabsTrigger value="announcements">Announcements</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="documents" className="mt-4">
@@ -120,19 +124,34 @@ export default async function ProjectDetailsPage(props: { params: Promise<{ id: 
                                     {project.Document.length === 0 ? (
                                         <p className="text-muted-foreground text-sm">No documents uploaded yet.</p>
                                     ) : (
-                                        project.Document.map(doc => (
-                                            <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-cyan-500/10 group hover:border-cyan-500/30 transition-all">
-                                                <div className="flex items-center gap-3">
-                                                    <FileText className="h-5 w-5 text-cyan-400" />
-                                                    <a href={doc.url} target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors font-medium">
-                                                        {doc.name}
-                                                    </a>
-                                                </div>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {format(new Date(doc.uploadedAt), "MMM d, yyyy")}
-                                                </span>
-                                            </div>
-                                        ))
+                                            project.Document.map(doc => {
+                                                const isImage = /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(doc.url);
+                                                return (
+                                                    <div key={doc.id} className="flex flex-col gap-3 p-3 rounded-lg bg-white/5 border border-cyan-500/10 group hover:border-cyan-500/30 transition-all">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-3">
+                                                                <FileText className="h-5 w-5 text-cyan-400" />
+                                                                <a href={doc.url} target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors font-medium">
+                                                                    {doc.name}
+                                                                </a>
+                                                            </div>
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {format(new Date(doc.uploadedAt), "MMM d, yyyy")}
+                                                            </span>
+                                                        </div>
+                                                        {isImage && (
+                                                            <div className="relative aspect-video rounded-md overflow-hidden border border-cyan-500/20 group-hover:border-cyan-500/40 transition-all">
+                                                                <img 
+                                                                    src={doc.url} 
+                                                                    alt={doc.name} 
+                                                                    className="object-cover w-full h-full hover:scale-105 transition-transform duration-500 cursor-zoom-in"
+                                                                    onClick={() => window.open(doc.url, '_blank')}
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })
                                     )}
                                 </CardContent>
                             </Card>
@@ -176,6 +195,7 @@ export default async function ProjectDetailsPage(props: { params: Promise<{ id: 
                         </TabsContent>
 
                         <TabsContent value="milestones" className="mt-4">
+                            {/* ... existing milestones content ... */}
                             <Card className="glass-modern border-cyan-500/20">
                                 <CardHeader className="flex flex-row items-center justify-between">
                                     <CardTitle>Milestones</CardTitle>
@@ -227,6 +247,80 @@ export default async function ProjectDetailsPage(props: { params: Promise<{ id: 
                                                     <p className={`font-medium ${m.isCompleted ? "line-through text-muted-foreground" : ""}`}>{m.title}</p>
                                                     <p className="text-xs text-muted-foreground">Deadline: {format(new Date(m.deadline), "PPP")}</p>
                                                 </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+
+                        <TabsContent value="announcements" className="mt-4">
+                            <Card className="glass-modern border-cyan-500/20">
+                                <CardHeader className="flex flex-row items-center justify-between">
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Bell className="h-5 w-5 text-cyan-400" />
+                                        Project Announcements
+                                    </CardTitle>
+                                    <Dialog>
+                                        <DialogTrigger asChild>
+                                            <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/20">
+                                                <Plus className="mr-2 h-4 w-4" /> New Announcement
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="glass-modern border-cyan-500/20">
+                                            <DialogHeader>
+                                                <DialogTitle>Post New Announcement</DialogTitle>
+                                                <DialogDescription>Notify all project members about important updates.</DialogDescription>
+                                            </DialogHeader>
+                                            <FormWithToast
+                                                action={async (formData) => {
+                                                    "use server"
+                                                    const title = formData.get("title") as string
+                                                    const content = formData.get("content") as string
+                                                    return await postAnnouncement(project.id, title, content)
+                                                }}
+                                                successMessage="Announcement posted successfully!"
+                                            >
+                                                <div className="grid gap-4 py-4">
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="title">Title</Label>
+                                                        <Input id="title" name="title" placeholder="e.g., Deadline Extension" required className="bg-white/5 border-cyan-500/20" />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="content">Content</Label>
+                                                        <Input id="content" name="content" placeholder="Enter details..." required className="bg-white/5 border-cyan-500/20" />
+                                                    </div>
+                                                </div>
+                                                <DialogFooter>
+                                                    <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white">Post Now</Button>
+                                                </DialogFooter>
+                                            </FormWithToast>
+                                        </DialogContent>
+                                    </Dialog>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    {project.Announcement.length === 0 ? (
+                                        <div className="text-center py-8">
+                                            <p className="text-muted-foreground text-sm italic">No announcements yet.</p>
+                                        </div>
+                                    ) : (
+                                        project.Announcement.map(announcement => (
+                                            <div key={announcement.id} className="p-4 rounded-xl bg-white/5 border border-cyan-500/10 group relative transition-all hover:bg-white/10">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div>
+                                                        <h4 className="font-bold text-cyan-400">{announcement.title}</h4>
+                                                        <p className="text-xs text-muted-foreground">{format(new Date(announcement.createdAt), "PPP p")}</p>
+                                                    </div>
+                                                    <form action={async () => {
+                                                        "use server"
+                                                        await deleteAnnouncement(project.id, announcement.id)
+                                                    }}>
+                                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </form>
+                                                </div>
+                                                <p className="text-sm text-foreground/80 whitespace-pre-wrap">{announcement.content}</p>
                                             </div>
                                         ))
                                     )}

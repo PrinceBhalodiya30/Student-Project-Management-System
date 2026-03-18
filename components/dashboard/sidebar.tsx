@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
     LayoutDashboard, FolderKanban, Users, FileText, Settings,
-    Database, ChevronLeft, Menu, LogOut, Sparkles, CheckSquare, ClipboardList, Megaphone
+    Database, ChevronLeft, Menu, LogOut, Sparkles, CheckSquare, Megaphone
 } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
@@ -18,7 +18,6 @@ const adminNavItems = [
     { href: "/dashboard/admin/allocations", label: "Allocations", icon: Users },
     { href: "/dashboard/admin/broadcast", label: "Broadcast", icon: Megaphone },
     { href: "/dashboard/admin/reports", label: "Reports", icon: FileText },
-    { href: "/dashboard/admin/audit-logs", label: "Audit", icon: ClipboardList },
     { href: "/dashboard/admin/settings", label: "Settings", icon: Settings },
     { href: "/dashboard/admin/master-data", label: "Master Data", icon: Database },
 ]

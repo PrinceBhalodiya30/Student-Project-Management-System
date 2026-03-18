@@ -186,3 +186,35 @@ export async function createMilestone(projectId: string, title: string, deadline
         return { success: false, error: "Failed to create milestone" }
     }
 }
+
+export async function postAnnouncement(projectId: string, title: string, content: string) {
+    try {
+        await prisma.announcement.create({
+            data: {
+                projectId,
+                title,
+                content
+            }
+        })
+        revalidatePath(`/dashboard/faculty/projects/${projectId}`)
+        revalidatePath(`/dashboard/student/project`)
+        return { success: true }
+    } catch (error) {
+        console.error("Failed to post announcement:", error)
+        return { success: false, error: "Failed to post announcement" }
+    }
+}
+
+export async function deleteAnnouncement(projectId: string, announcementId: string) {
+    try {
+        await prisma.announcement.delete({
+            where: { id: announcementId }
+        })
+        revalidatePath(`/dashboard/faculty/projects/${projectId}`)
+        revalidatePath(`/dashboard/student/project`)
+        return { success: true }
+    } catch (error) {
+        console.error("Failed to delete announcement:", error)
+        return { success: false, error: "Failed to delete announcement" }
+    }
+}
